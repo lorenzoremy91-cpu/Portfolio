@@ -27,9 +27,10 @@ html {
   scroll-behavior: smooth;
 }
 
+/* No overscroll/touch constraints: native rubber-banding and momentum stay
+   fully in the browser's hands for a natural feel on iOS/Android. */
 body {
   @apply bg-cream text-ink font-body antialiased;
-  overscroll-behavior-y: none;
 }
 
 ::selection {

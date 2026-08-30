@@ -10,15 +10,12 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 ScrollTrigger.config({ ignoreMobileResize: true })
 
 /*
-  Touch devices: normalizeScroll makes GSAP drive the scroll itself instead
-  of the native (composited) scroll. This removes the two causes of the
-  brutal jump when the first scroll gesture meets the pinned hero: the URL
-  bar collapse shifting the visual viewport mid-pin, and the pin engaging
-  out of sync with touch momentum. Desktop keeps native scrolling untouched.
+  Scrolling is NATIVE everywhere — normalizeScroll was tried for the
+  pin-entry jolt and proved erratic on real iOS (bounces, locked touch,
+  uncontrolled jumps), so it must never come back. The pin stays smooth
+  through: heights locked once to the load-time innerHeight (below),
+  ignoreMobileResize, anticipatePin, and the video decoder prewarm.
 */
-if (window.matchMedia('(pointer: coarse)').matches) {
-  ScrollTrigger.normalizeScroll(true)
-}
 
 /*
   HEIGHT AUTHORITY — captured in JS ONCE at load (iOS toolbar show/hide can
