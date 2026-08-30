@@ -78,6 +78,7 @@ export default function Hero() {
   const scope = useRef(null)
   const bgVideoRef = useRef(null)
   const curtainRef = useRef(null)
+  const layerRef = useRef(null)
   const spacerRef = useRef(null)
   const trailState = useRef({ lastX: null, lastY: null, idx: 0, z: 10 })
 
@@ -215,16 +216,40 @@ export default function Hero() {
         if (spacerRef.current) {
           spacerRef.current.style.height = MOBILE_NO_PIN ? `${viewportH}px` : '0px'
         }
+        /*
+          THE iOS BUG: the sticky layer used to be sized with the CSS unit
+          `lvh` — the LARGE viewport height, i.e. the height with Safari's
+          address bar HIDDEN (~852px on an iPhone 14) — while viewportH is
+          innerHeight captured with the bar VISIBLE (~745px). Two fatal
+          consequences on a real phone, both invisible in a desktop preview:
+            • the daisy is anchored to the bottom of an 852px box inside a
+              745px window, so it sits ~107px BELOW THE FOLD at first paint
+              (the beige empty screen), and
+            • sticky then holds for track − layer = 638px instead of 745px,
+              releasing before the flight ends (the brutal jump to page 2).
+          Locking the layer to the same px authority as everything else fixes
+          both. Desktop clears the inline height (the fixed layer uses inset-0).
+        */
+        if (layerRef.current) {
+          layerRef.current.style.height = MOBILE_NO_PIN ? `${viewportH}px` : ''
+        }
       }
       sizeCurtain()
-      ScrollTrigger.addEventListener('refresh', sizeCurtain)
+      /*
+        refreshInit, NOT refresh: 'refresh' fires AFTER ScrollTrigger has
+        measured the page, so the first pass measured the track at its CSS
+        fallback height (200svh) and only then did we swap in the px value —
+        leaving every trigger anchored to stale geometry until something else
+        forced a second refresh. refreshInit runs before measuring.
+      */
+      ScrollTrigger.addEventListener('refreshInit', sizeCurtain)
 
       // Cleanup (runs on context revert): kill any in-flight spawn tweens.
       // Spawn timelines are deliberately created OUTSIDE this context (plain
       // gsap in spawnCard) so they don't accumulate in context.data forever —
       // this is the one piece of teardown they need.
       return () => {
-        ScrollTrigger.removeEventListener('refresh', sizeCurtain)
+        ScrollTrigger.removeEventListener('refreshInit', sizeCurtain)
         gsap.killTweensOf(gsap.utils.toArray('[data-trail]', scope.current || undefined))
       }
     },
@@ -333,7 +358,13 @@ export default function Hero() {
         data-zone="bg-video"
         style={
           MOBILE_NO_PIN
-            ? { height: '200svh' }
+            ? {
+                height: '200svh',
+                // Wall tone behind the layer: if Safari's bar retracts and
+                // the window grows past our locked height, the strip that
+                // appears shows the plate's own wall colour, never bare cream.
+                backgroundColor: '#cfc9ba',
+              }
             : { clipPath: 'inset(0)', height: '200svh' }
         }
       >
@@ -347,7 +378,16 @@ export default function Hero() {
           an overflow ancestor silently disables sticky.
           Desktop/tablet keep the clipped fixed layer the pin relies on.
         */}
-        <div className={MOBILE_NO_PIN ? 'sticky top-0 h-lvh w-full overflow-hidden' : 'fixed inset-0'}>
+        {/* h-svh (SMALL viewport height) as the pre-JS fallback only: it is
+            never taller than what the phone actually shows, so the daisy can
+            never start below the fold. sizeCurtain immediately replaces it
+            with the px-locked viewportH. */}
+        <div
+          ref={layerRef}
+          className={
+            MOBILE_NO_PIN ? 'sticky top-0 h-svh w-full overflow-hidden' : 'fixed inset-0'
+          }
+        >
           {/* Mobile-only backdrop: fills the space above the scaled-down
               video with the footage's wall tones, leaving the upper half
               free for the typography. Hidden on md+. */}
