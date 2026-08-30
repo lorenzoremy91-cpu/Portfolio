@@ -12,10 +12,15 @@ ScrollTrigger.config({ ignoreMobileResize: true })
 /*
   Scrolling is NATIVE everywhere — normalizeScroll was tried for the
   pin-entry jolt and proved erratic on real iOS (bounces, locked touch,
-  uncontrolled jumps), so it must never come back. The pin stays smooth
-  through: heights locked once to the load-time innerHeight (below),
-  ignoreMobileResize, anticipatePin, and the video decoder prewarm.
+  uncontrolled jumps), so it must never come back.
+
+  NO PIN ON MOBILE (<768px): Safari's address-bar resize during the first
+  scroll gesture disturbs GSAP pinning (jump/lock). On touch-mobile the hero
+  is plain flow — the petal flight scrubs across the hero's own natural
+  one-viewport exit instead of a pinned hold. Desktop keeps the pinned
+  cinematic hold.
 */
+const MOBILE_NO_PIN = window.matchMedia('(max-width: 767px)').matches
 
 /*
   HEIGHT AUTHORITY — captured in JS ONCE at load (iOS toolbar show/hide can
@@ -121,17 +126,28 @@ export default function Hero() {
         p: 1,
         ease: 'none',
         onUpdate: applySeek,
-        scrollTrigger: {
-          trigger: scope.current,
-          start: 'top top',
-          // Function-based so invalidateOnRefresh re-reads it, but it always
-          // returns the load-captured viewportH — stable on iOS.
-          end: () => `+=${viewportH}`,
-          pin: true,
-          scrub: 0.5,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
+        scrollTrigger: MOBILE_NO_PIN
+          ? {
+              // Mobile: no pin — the scrub rides the hero's own natural
+              // exit: petals fly from the first scrolled pixel until the
+              // section has fully left the viewport.
+              trigger: scope.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 0.5,
+              invalidateOnRefresh: true,
+            }
+          : {
+              trigger: scope.current,
+              start: 'top top',
+              // Function-based so invalidateOnRefresh re-reads it, but it
+              // always returns the load-captured viewportH — stable.
+              end: () => `+=${viewportH}`,
+              pin: true,
+              scrub: 0.5,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
       })
       if (bgVideoRef.current) {
         // Property assignments (not addEventListener) stay idempotent across
@@ -164,8 +180,10 @@ export default function Hero() {
         // Section, pin and curtain all locked to the load-captured viewportH
         // (min-h-svh in the markup is only the pre-JS fallback) — one height
         // authority makes raw section overlap geometrically impossible.
+        // Without a pin, the hero's scroll footprint is just its own height,
+        // so the mobile curtain track is 1× viewportH instead of 2×.
         if (curtainRef.current) {
-          curtainRef.current.style.height = `${viewportH * 2}px`
+          curtainRef.current.style.height = `${viewportH * (MOBILE_NO_PIN ? 1 : 2)}px`
         }
         if (scope.current) {
           scope.current.style.minHeight = `${viewportH}px`
