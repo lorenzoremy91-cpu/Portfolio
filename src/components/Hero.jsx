@@ -135,7 +135,9 @@ export default function Hero() {
         // be too. 100vh on mobile is the LARGE viewport (toolbar hidden) and
         // overshoots the visible height, shifting every downstream boundary —
         // so the hero's height is pinned to the same px authority here
-        // (min-h-svh in the markup is only the pre-JS fallback).
+        // (min-h-dvh in the markup is only the pre-JS fallback; this px lock
+        // is what keeps section, pin, curtain and weld on ONE height so no
+        // section can ever overlap the next on mobile).
         if (scope.current) {
           scope.current.style.minHeight = `${window.innerHeight}px`
         }
@@ -255,7 +257,7 @@ export default function Hero() {
         ref={curtainRef}
         className="absolute left-0 top-0 w-full"
         data-zone="bg-video"
-        style={{ clipPath: 'inset(0)', height: '200vh' }}
+        style={{ clipPath: 'inset(0)', height: '200dvh' }}
       >
         <div className="fixed inset-0">
           {/* Mobile-only backdrop: fills the space above the scaled-down
