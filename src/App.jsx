@@ -7,7 +7,7 @@ import CustomCursor from './components/CustomCursor.jsx'
 
 export default function App() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <CustomCursor />
       <Navbar />
       <main>

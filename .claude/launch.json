@@ -6,6 +6,12 @@
       "runtimeExecutable": "/Users/lorenzoremy/.local/node/bin/node",
       "runtimeArgs": ["node_modules/vite/bin/vite.js"],
       "port": 5173
+    },
+    {
+      "name": "cesure-preview",
+      "runtimeExecutable": "/Users/lorenzoremy/.local/node/bin/node",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js", "preview"],
+      "port": 4173
     }
   ]
 }

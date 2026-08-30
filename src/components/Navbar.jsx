@@ -126,7 +126,10 @@ export default function Navbar() {
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[90] hidden border-t-2 border-accent bg-cream will-change-transform"
       />
-      <nav className="flex h-full items-center justify-between px-6 md:px-10">
+      {/* On small screens the fixed bar gets a translucent blur backdrop so
+          scrolled content never collides visually with the menu; md+ keeps
+          the fully transparent desktop bar. */}
+      <nav className="flex h-full items-center justify-between px-6 max-md:bg-cream/75 max-md:backdrop-blur-md md:px-10">
         <a href="/" className="font-display text-lg font-medium tracking-tight">
           Césure<span className="text-accent">.</span>
         </a>

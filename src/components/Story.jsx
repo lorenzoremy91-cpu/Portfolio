@@ -81,13 +81,17 @@ export default function Story() {
       const avProxy = { p: 0 }
       let bgPendingSeek = null
       let avPendingSeek = null
+      // Touch devices decode-seek more slowly — a coarser epsilon halves the
+      // number of seeks issued during flick-scrolling, trading imperceptible
+      // frame granularity for fluidity.
+      const seekEps = window.matchMedia('(pointer: coarse)').matches ? 1 / 15 : 1 / 30
       const makeApply = (ref, proxyObj, setPending) => () => {
         const video = ref.current
         if (!video || !video.duration) return
         const target = proxyObj.p * video.duration
         if (video.seeking) {
           setPending(target)
-        } else if (Math.abs(video.currentTime - target) > 1 / 30) {
+        } else if (Math.abs(video.currentTime - target) > seekEps) {
           video.currentTime = target
         }
       }
@@ -108,12 +112,17 @@ export default function Story() {
         const video = avatarRef.current
         const canvas = avatarCanvasRef.current
         if (!video || !canvas || video.readyState < 2 || !video.videoWidth) return
-        if (canvas.width !== video.videoWidth) {
-          canvas.width = video.videoWidth
-          canvas.height = video.videoHeight
+        // The canvas displays at ~224-320px wide; keying the native 1244px
+        // frame loops over 4× more pixels than needed and janks touch
+        // scrolling. 640px keeps edges crisp at every rendered size.
+        const kw = Math.min(video.videoWidth, 640)
+        const kh = Math.round((video.videoHeight / video.videoWidth) * kw)
+        if (canvas.width !== kw) {
+          canvas.width = kw
+          canvas.height = kh
         }
         const ctx = canvas.getContext('2d', { willReadFrequently: true })
-        ctx.drawImage(video, 0, 0)
+        ctx.drawImage(video, 0, 0, kw, kh)
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
         const d = frame.data
         for (let i = 0; i < d.length; i += 4) {

@@ -131,6 +131,14 @@ export default function Hero() {
         if (curtainRef.current) {
           curtainRef.current.style.height = `${window.innerHeight * 2}px`
         }
+        // Pin, curtain and weld are all innerHeight-based; the section must
+        // be too. 100vh on mobile is the LARGE viewport (toolbar hidden) and
+        // overshoots the visible height, shifting every downstream boundary —
+        // so the hero's height is pinned to the same px authority here
+        // (min-h-svh in the markup is only the pre-JS fallback).
+        if (scope.current) {
+          scope.current.style.minHeight = `${window.innerHeight}px`
+        }
       }
       sizeCurtain()
       ScrollTrigger.addEventListener('refresh', sizeCurtain)
@@ -291,7 +299,7 @@ export default function Hero() {
       ref={scope}
       onMouseMove={onHeroMove}
       onMouseLeave={onHeroLeave}
-      className="relative flex min-h-screen flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
+      className="relative flex min-h-dvh flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
     >
 
       {/* Layer 0.5 — cursor image trail, under the typography. Cards live at
@@ -321,7 +329,7 @@ export default function Hero() {
 
       {/* Layer 1 — central typography over the plate's daisy (lower left),
           lifted well above center so the composition breathes */}
-      <div className="relative z-10 mx-auto -mt-[12vh] w-full max-w-4xl text-center md:-mt-[15vh]">
+      <div className="relative z-10 mx-auto -mt-[5vh] w-full max-w-4xl text-center md:-mt-[15vh]">
         <h1
           aria-label={TITLE}
           className="font-serif overflow-hidden text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] md:text-[9.5vw] lg:text-[9vw]"
