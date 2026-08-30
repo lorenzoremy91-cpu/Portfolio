@@ -289,9 +289,12 @@ export default function Hero() {
               top edge dissolving upward so departing petals fade into the
               sky instead of hard-cutting. lg+ is the untouched desktop
               cover. */}
+          {/* poster = frame 0 as an instant JPEG: on slow mobile networks
+              the daisy is visible before a single video byte arrives. */}
           <video
             ref={bgVideoRef}
             src={BACKGROUND_VIDEO}
+            poster="/videos/poster-hero.jpg"
             muted
             playsInline
             preload="auto"

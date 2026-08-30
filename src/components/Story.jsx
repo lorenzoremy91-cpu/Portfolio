@@ -232,6 +232,7 @@ export default function Story() {
           <video
             ref={bgVideoRef}
             src="/videos/background-stem-pan.mp4"
+            poster="/videos/poster-story.jpg"
             muted
             playsInline
             preload="metadata"
