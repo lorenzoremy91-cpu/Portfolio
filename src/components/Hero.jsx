@@ -78,6 +78,7 @@ export default function Hero() {
   const scope = useRef(null)
   const bgVideoRef = useRef(null)
   const curtainRef = useRef(null)
+  const spacerRef = useRef(null)
   const trailState = useRef({ lastX: null, lastY: null, idx: 0, z: 10 })
 
   useGSAP(
@@ -112,13 +113,17 @@ export default function Hero() {
       */
       const proxy = { p: 0 }
       let pendingSeek = null
+      // Tighter seek threshold on phones (1/60 s ≈ 2.7 px of scroll) so the
+      // very first pixels of a finger gesture already move the playhead —
+      // no dead zone before the first petal lifts. Desktop keeps 1/30.
+      const seekEps = MOBILE_NO_PIN ? 1 / 60 : 1 / 30
       const applySeek = () => {
         const video = bgVideoRef.current
         if (!video || !video.duration) return
         const target = proxy.p * video.duration
         if (video.seeking) {
           pendingSeek = target
-        } else if (Math.abs(video.currentTime - target) > 1 / 30) {
+        } else if (Math.abs(video.currentTime - target) > seekEps) {
           video.currentTime = target
         }
       }
@@ -131,10 +136,19 @@ export default function Hero() {
               // Mobile: no pin — the scrub rides the hero's own natural
               // exit: petals fly from the first scrolled pixel until the
               // section has fully left the viewport.
+              /*
+                Phones: the flight runs across the hero's own screen height
+                (start = first scrolled pixel, end = one screen later). The
+                spacer added below then gives page 2 its own screen of travel
+                AFTER the flight is finished, so the two plates never show
+                different moments of the same scene at once.
+                scrub 0.15 (not 0.5): half a second of catch-up smoothing
+                reads as a dead zone under the thumb.
+              */
               trigger: scope.current,
               start: 'top top',
               end: 'bottom top',
-              scrub: 0.5,
+              scrub: 0.15,
               invalidateOnRefresh: true,
             }
           : {
@@ -183,10 +197,23 @@ export default function Hero() {
         // Without a pin, the hero's scroll footprint is just its own height,
         // so the mobile curtain track is 1× viewportH instead of 2×.
         if (curtainRef.current) {
-          curtainRef.current.style.height = `${viewportH * (MOBILE_NO_PIN ? 1 : 2)}px`
+          /*
+            Two screens on BOTH platforms now. Desktop: the section + the
+            pinned hold. Phones: the section + the spacer below it — and the
+            phone layer is position:sticky, which stays glued for exactly
+            (trackHeight − layerHeight) = one screen, i.e. precisely the
+            flight. A one-screen track (the previous value) clipped the
+            bottom-anchored daisy away as soon as the user scrolled.
+          */
+          curtainRef.current.style.height = `${viewportH * 2}px`
         }
         if (scope.current) {
           scope.current.style.minHeight = `${viewportH}px`
+        }
+        // Phone-only runway: one screen of transparent scroll AFTER the
+        // flight, so page 2 rises only once the petals have finished.
+        if (spacerRef.current) {
+          spacerRef.current.style.height = MOBILE_NO_PIN ? `${viewportH}px` : '0px'
         }
       }
       sizeCurtain()
@@ -304,9 +331,23 @@ export default function Hero() {
         ref={curtainRef}
         className="absolute left-0 top-0 w-full"
         data-zone="bg-video"
-        style={{ clipPath: 'inset(0)', height: '200svh' }}
+        style={
+          MOBILE_NO_PIN
+            ? { height: '200svh' }
+            : { clipPath: 'inset(0)', height: '200svh' }
+        }
       >
-        <div className="fixed inset-0">
+        {/*
+          Phones use a NATIVE sticky layer instead of the clipped fixed one:
+          with fixed+clip, the track's shrinking clip window cut the
+          bottom-anchored daisy away as soon as the user scrolled, so the end
+          of the petal flight played out of sight. Sticky keeps the whole
+          plate glued to the screen for the flight, then releases naturally
+          into page 2. NOTE: the track must NOT get overflow-hidden below md —
+          an overflow ancestor silently disables sticky.
+          Desktop/tablet keep the clipped fixed layer the pin relies on.
+        */}
+        <div className={MOBILE_NO_PIN ? 'sticky top-0 h-lvh w-full overflow-hidden' : 'fixed inset-0'}>
           {/* Mobile-only backdrop: fills the space above the scaled-down
               video with the footage's wall tones, leaving the upper half
               free for the typography. Hidden on md+. */}
@@ -427,6 +468,12 @@ export default function Hero() {
         </span>
       </div>
     </section>
+
+    {/* Phone-only scroll runway (height set by sizeCurtain; 0 elsewhere):
+        the screen of travel during which page 2 rises, AFTER the petal
+        flight has finished — so the hero plate and the Story plate always
+        show the same frame while both are on screen. */}
+    <div ref={spacerRef} aria-hidden="true" style={{ height: 0 }} />
     </>
   )
 }
