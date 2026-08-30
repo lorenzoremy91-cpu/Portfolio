@@ -9,6 +9,23 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 // scroll; refreshing every trigger on those is a major stutter source.
 ScrollTrigger.config({ ignoreMobileResize: true })
 
+/*
+  HEIGHT AUTHORITY — captured in JS ONCE at load (iOS toolbar show/hide can
+  never move it, unlike dynamic CSS viewport units which shift mid-scroll
+  and break ScrollTrigger's pin geometry). Section, pin distance and curtain
+  track all derive from this single number, making raw overlap between
+  sections geometrically impossible. Only a real orientation change updates
+  it (followed by a full refresh) — rotating the phone is the one case where
+  keeping the load-time value would be wrong.
+*/
+let viewportH = window.innerHeight
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    viewportH = window.innerHeight
+    ScrollTrigger.refresh()
+  }, 300)
+})
+
 // Live media-query handles (checked at use time, cheap).
 const REDUCED_MQ = window.matchMedia('(prefers-reduced-motion: reduce)')
 const FINE_POINTER_MQ = window.matchMedia('(hover: hover) and (pointer: fine)')
@@ -99,7 +116,9 @@ export default function Hero() {
         scrollTrigger: {
           trigger: scope.current,
           start: 'top top',
-          end: '+=100%',
+          // Function-based so invalidateOnRefresh re-reads it, but it always
+          // returns the load-captured viewportH — stable on iOS.
+          end: () => `+=${viewportH}`,
           pin: true,
           scrub: 0.5,
           anticipatePin: 1,
@@ -128,18 +147,14 @@ export default function Hero() {
         every refresh.
       */
       const sizeCurtain = () => {
+        // Section, pin and curtain all locked to the load-captured viewportH
+        // (min-h-svh in the markup is only the pre-JS fallback) — one height
+        // authority makes raw section overlap geometrically impossible.
         if (curtainRef.current) {
-          curtainRef.current.style.height = `${window.innerHeight * 2}px`
+          curtainRef.current.style.height = `${viewportH * 2}px`
         }
-        // Pin, curtain and weld are all innerHeight-based; the section must
-        // be too. 100vh on mobile is the LARGE viewport (toolbar hidden) and
-        // overshoots the visible height, shifting every downstream boundary —
-        // so the hero's height is pinned to the same px authority here
-        // (min-h-dvh in the markup is only the pre-JS fallback; this px lock
-        // is what keeps section, pin, curtain and weld on ONE height so no
-        // section can ever overlap the next on mobile).
         if (scope.current) {
-          scope.current.style.minHeight = `${window.innerHeight}px`
+          scope.current.style.minHeight = `${viewportH}px`
         }
       }
       sizeCurtain()
@@ -257,7 +272,7 @@ export default function Hero() {
         ref={curtainRef}
         className="absolute left-0 top-0 w-full"
         data-zone="bg-video"
-        style={{ clipPath: 'inset(0)', height: '200dvh' }}
+        style={{ clipPath: 'inset(0)', height: '200svh' }}
       >
         <div className="fixed inset-0">
           {/* Mobile-only backdrop: fills the space above the scaled-down
@@ -301,7 +316,7 @@ export default function Hero() {
       ref={scope}
       onMouseMove={onHeroMove}
       onMouseLeave={onHeroLeave}
-      className="relative flex min-h-dvh flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
+      className="relative flex min-h-svh flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
     >
 
       {/* Layer 0.5 — cursor image trail, under the typography. Cards live at
