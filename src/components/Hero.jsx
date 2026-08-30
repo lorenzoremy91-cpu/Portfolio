@@ -10,6 +10,17 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 ScrollTrigger.config({ ignoreMobileResize: true })
 
 /*
+  Touch devices: normalizeScroll makes GSAP drive the scroll itself instead
+  of the native (composited) scroll. This removes the two causes of the
+  brutal jump when the first scroll gesture meets the pinned hero: the URL
+  bar collapse shifting the visual viewport mid-pin, and the pin engaging
+  out of sync with touch momentum. Desktop keeps native scrolling untouched.
+*/
+if (window.matchMedia('(pointer: coarse)').matches) {
+  ScrollTrigger.normalizeScroll(true)
+}
+
+/*
   HEIGHT AUTHORITY — captured in JS ONCE at load (iOS toolbar show/hide can
   never move it, unlike dynamic CSS viewport units which shift mid-scroll
   and break ScrollTrigger's pin geometry). Section, pin distance and curtain
@@ -129,6 +140,12 @@ export default function Hero() {
         // Property assignments (not addEventListener) stay idempotent across
         // StrictMode re-runs.
         bgVideoRef.current.onloadedmetadata = applySeek
+        // Decoder prewarm: the very first seek on mobile initializes the
+        // decode pipeline and can hitch right as the user starts scrolling —
+        // a micro-seek at load absorbs that cost while the poster covers it.
+        bgVideoRef.current.onloadeddata = (e) => {
+          if (e.target.currentTime === 0) e.target.currentTime = 0.001
+        }
         if (bgVideoRef.current.readyState >= 1) applySeek()
         bgVideoRef.current.onseeked = (e) => {
           if (pendingSeek !== null) {
