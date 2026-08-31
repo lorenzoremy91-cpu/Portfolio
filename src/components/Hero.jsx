@@ -165,6 +165,7 @@ export default function Hero() {
         motion, preloader errors) all set it.
       */
       let startIntro = null
+      let introSafety = null
       if (!REDUCED_MQ.matches) {
         const introDone = window.__CESURE_INTRO_DONE__ === true
         const introTl = gsap
@@ -173,8 +174,15 @@ export default function Hero() {
           .from('[data-tagline]', { y: 24, autoAlpha: 0, duration: 0.8 }, '-=0.55')
           .from('[data-cta]', { y: 20, autoAlpha: 0, duration: 0.7 }, '-=0.45')
         if (!introDone) {
-          startIntro = () => introTl.play()
+          startIntro = () => {
+            clearTimeout(introSafety)
+            introTl.play()
+          }
           window.addEventListener('cesure:intro-done', startIntro, { once: true })
+          // If the preloader ever dies without firing its event (an
+          // exception, a killed video pipeline), the title must not stay
+          // hidden forever. Play is idempotent — a late event is harmless.
+          introSafety = setTimeout(() => introTl.play(), 11000)
         }
       }
 
@@ -226,24 +234,40 @@ export default function Hero() {
         exactly as fast as the scroll — the ease:'none' tween to
         viewportH + delta does precisely that, in the same scroll units.
 
-        NO drift toward the geometric center — that was tried and it put
-        the button on top of the tagline: on desktop the whole section is
-        pinned static during the flight, so ANY vertical migration collides
-        with the type above it. The correct physics is anchoring: the
-        button holds the screen position the design gave it (which sits
-        near center already).
+        THE FINAL SHAPE, third iteration — each ancestor taught a lesson:
+          v1 glided to center but the pinned tagline stayed put → overlap.
+          v2 anchored in place, but the brief demands the true viewport
+             center, and the scrub-lag left a half-faded button visibly
+             riding up with the section at the unpin.
+        So: the TYPOGRAPHY DISSOLVES FIRST. Title and tagline fade over the
+        first 28% of the flight; the button then glides to the exact
+        viewport center (arriving at 35%, after its neighbours are gone —
+        overlap is structurally impossible), holds that center in scroll
+        units on phones / stillness on desktop, and is FULLY faded by 90%
+        of the flight, so even with scrub smoothing nothing remains to
+        ride up when the pin releases.
 
-          • Desktop: the pin already freezes it on screen — zero motion,
-            zero overlap risk. Only the fade exists.
-          • Phones: the section scrolls up, so holding the anchor means
-            countering the scroll exactly — y = progress × viewportH,
-            ease:none, in the same scroll units as the flight.
-
-        Both fade out over the last fifth of the scene, as page 2 begins,
-        still on their anchor. No measured deltas, nothing to re-resolve on
-        refresh — geometry cannot poison it.
+        The center delta is captured ONCE at setup in SECTION-RELATIVE
+        coordinates (cta − section top), which cancels the pin transform,
+        the scroll position and the paused intro's from-state — the
+        live-measurement version of this was poisoned by exactly one
+        scroll offset when invalidateOnRefresh re-resolved it mid-pin.
       */
       if (!REDUCED_MQ.matches) {
+        let ctaD0 = 0
+        {
+          const host = scope.current?.querySelector('[data-cta]')
+          if (host && scope.current) {
+            const r = host.getBoundingClientRect()
+            const s = scope.current.getBoundingClientRect()
+            const introY = Number(gsap.getProperty(host, 'y')) || 0
+            ctaD0 = viewportH / 2 - (r.top - s.top - introY + r.height / 2)
+          }
+        }
+        const typo = [
+          scope.current?.querySelector('h1'),
+          ...gsap.utils.toArray('[data-tagline]', scope.current || undefined),
+        ].filter(Boolean)
         const floatTl = gsap.timeline({
           scrollTrigger: MOBILE_NO_PIN
             ? {
@@ -260,17 +284,49 @@ export default function Hero() {
                 invalidateOnRefresh: true,
               },
         })
-        if (MOBILE_NO_PIN) {
-          floatTl.to(
-            '[data-cta-float]',
-            { y: () => viewportH, duration: 1, ease: 'none' },
-            0,
-          )
-        }
+        // The stage empties before the button moves in.
+        floatTl.to(
+          typo,
+          { autoAlpha: 0, duration: 0.28, ease: 'power1.in' },
+          0,
+        )
+        // Glide to the exact viewport center…
         floatTl.to(
           '[data-cta-float]',
-          { autoAlpha: 0, duration: 0.2, ease: 'none' },
-          0.8,
+          {
+            y: () => (MOBILE_NO_PIN ? viewportH * 0.35 : 0) + ctaD0,
+            duration: 0.35,
+            ease: 'power2.out',
+          },
+          0,
+        )
+        // …hold it (phones climb at exactly the scroll rate; desktop is
+        // pinned, so the same position IS stillness)…
+        floatTl.to(
+          '[data-cta-float]',
+          {
+            y: () => (MOBILE_NO_PIN ? viewportH * 0.9 : 0) + ctaD0,
+            duration: 0.55,
+            ease: 'none',
+          },
+          0.35,
+        )
+        // …and be gone well before the seam: fade completes at 90% of the
+        // flight, still on center (the y keeps the scroll slope under the
+        // fade so phones never drift while dissolving).
+        floatTl.to(
+          '[data-cta-float]',
+          { autoAlpha: 0, duration: 0.18, ease: 'power1.in' },
+          0.72,
+        )
+        floatTl.to(
+          '[data-cta-float]',
+          {
+            y: () => (MOBILE_NO_PIN ? viewportH : 0) + ctaD0,
+            duration: 0.1,
+            ease: 'none',
+          },
+          0.9,
         )
       }
 
@@ -520,6 +576,7 @@ export default function Hero() {
           ctaRef.current.removeEventListener('mouseleave', magnetLeave)
         }
         if (startIntro) window.removeEventListener('cesure:intro-done', startIntro)
+        clearTimeout(introSafety)
         gsap.killTweensOf(gsap.utils.toArray('[data-trail]', scope.current || undefined))
       }
     },

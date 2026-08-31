@@ -82,7 +82,12 @@ export default function Story() {
       */
       ScrollTrigger.create({
         trigger: scope.current,
-        start: 'top 130%',
+        // 250%, not 130%: the upgrade also triggers the avatar's first
+        // decode + the WebGL probe, and at 130% those landed exactly in
+        // the hero→story transit on a fast scroll — a synchronous
+        // readPixels stall in the middle of the seam. Two and a half
+        // viewports of headroom moves all of it well before arrival.
+        start: 'top 250%',
         once: true,
         onEnter: () => {
           ;[bgVideoRef.current, avatarRef.current].forEach((v) => {
@@ -412,7 +417,20 @@ export default function Story() {
         avatarRef.current.onloadedmetadata = applyAvSeek
         avatarRef.current.onloadeddata = (e) => {
           primeVideo(e.target)
-          renderAvatarFrame()
+          /*
+            The FIRST render is the expensive one — it lazily builds and
+            probes the WebGL pipeline (shader compile + a synchronous
+            readPixels). loadeddata fires whenever the network hands over
+            the file, which can be mid-scroll; deferring the warmup to
+            idle time keeps that stall off the scroll frames. Later
+            renders are the 0.03ms fast path.
+          */
+          const warm = () => renderAvatarFrame()
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(warm, { timeout: 800 })
+          } else {
+            setTimeout(warm, 120)
+          }
         }
         if (avatarRef.current.readyState >= 1) applyAvSeek()
         if (avatarRef.current.readyState >= 2) renderAvatarFrame()

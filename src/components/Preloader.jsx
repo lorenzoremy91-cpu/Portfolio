@@ -219,7 +219,16 @@ export default function Preloader() {
     const bootTimeout = setTimeout(() => {
       if (video.readyState < 2) handover()
     }, 4000)
-    const hardTimeout = setTimeout(handover, 7000)
+    const hardTimeout = setTimeout(handover, 8000)
+    // Always restart from frame 0: a StrictMode/HMR remount re-runs this
+    // effect while the element kept playing — without the reset the second
+    // run would join the powder mid-flight or already ended (and an
+    // 'ended' video never fires 'ended' again: instant skip to the logo).
+    try {
+      if (video.currentTime > 0.05) video.currentTime = 0
+    } catch {
+      /* not seekable yet — it will start at 0 anyway */
+    }
     const p = video.play()
     if (p && typeof p.then === 'function') {
       // Autoplay refused (Low Power Mode): skip the smoke, keep the logo.
@@ -232,9 +241,12 @@ export default function Preloader() {
       video.removeEventListener('timeupdate', onTime)
       video.removeEventListener('ended', handover)
       video.removeEventListener('error', handover)
-      // StrictMode remount / teardown mid-intro: never leave the page locked.
+      // StrictMode remount / teardown mid-intro: never leave the page
+      // locked. Deliberately NO finishFlag() here — firing the relay from
+      // a dev remount made the hero letters rise under the black while the
+      // real intro replayed. If a preloader ever dies without completing,
+      // the Hero's own safety timer releases the letters.
       unlock()
-      if (!window.__CESURE_INTRO_DONE__) finishFlag()
     }
   }, [])
 
