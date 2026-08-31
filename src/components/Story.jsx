@@ -85,11 +85,22 @@ export default function Story() {
       // Touch devices decode-seek more slowly — a coarser epsilon halves the
       // number of seeks issued during flick-scrolling, trading imperceptible
       // frame granularity for fluidity.
-      const seekEps = window.matchMedia('(pointer: coarse)').matches ? 1 / 15 : 1 / 30
+      /*
+        Same 24 fps frame-grid snapping as the hero (see Hero.jsx applySeek):
+        on a fine pointer, seeking finer than one frame only queues decodes
+        that return the frame already on screen. Coarse pointers keep their
+        existing 1/15 epsilon and un-snapped target — untouched.
+      */
+      const COARSE = window.matchMedia('(pointer: coarse)').matches
+      const FPS = 24
+      const seekEps = COARSE ? 1 / 15 : 1 / (FPS * 2)
       const makeApply = (ref, proxyObj, setPending) => () => {
         const video = ref.current
         if (!video || !video.duration) return
-        const target = proxyObj.p * video.duration
+        const raw = proxyObj.p * video.duration
+        const target = COARSE
+          ? raw
+          : Math.min(Math.round(raw * FPS) / FPS, video.duration)
         if (video.seeking) {
           setPending(target)
         } else if (Math.abs(video.currentTime - target) > seekEps) {
@@ -147,7 +158,20 @@ export default function Story() {
             trigger: scope.current,
             start: 'top top',
             end: 'bottom top',
-            scrub: 0.5,
+            /*
+              GATED, and this gate is load-bearing: unlike Hero's, THIS
+              ScrollTrigger is not inside a mobile/desktop branch — it is the
+              one Story runs at every width, phones included. Writing a bare
+              0.1 here would silently retune real iOS, which is settled and
+              must not move. Fine pointers get the responsive 0.1; coarse
+              pointers keep the 0.5 they ship with today.
+
+              (Coarse-vs-fine is Story's own existing predicate — deliberately
+              NOT Hero's MOBILE_NO_PIN, which is the wider narrow||coarse||
+              no-hover pin test. Two disagreeing definitions of "mobile" in
+              one file is how this kind of thing rots.)
+            */
+            scrub: COARSE ? 0.5 : 0.1,
             invalidateOnRefresh: true,
           },
         })
@@ -201,6 +225,19 @@ export default function Story() {
             e.target.currentTime = t
           }
         }
+      }
+
+      /*
+        This file had NO cleanup at all, so the two primeAll listeners were
+        never removed — the same leak as Hero's primeOnGesture, and worse here
+        because primeAll closes over BOTH proxies: a stale copy snaps the stem
+        AND the avatar to frame 0 and forces a full alpha-key pass over the
+        avatar's 640x856 canvas. useGSAP honours a returned function (gsap
+        Context.add pushes it onto the revert list), so this does run.
+      */
+      return () => {
+        window.removeEventListener('touchstart', primeAll)
+        window.removeEventListener('pointerdown', primeAll)
       }
     },
     { scope },
@@ -261,20 +298,48 @@ export default function Story() {
             className="absolute bottom-0 left-[-20vw] w-[185vw] max-w-none [mask-image:linear-gradient(to_top,black_72%,transparent_100%)] md:left-[-8vw] md:w-[160vw] lg:static lg:h-full lg:w-full lg:object-cover lg:object-center lg:[mask-image:none]"
           />
           <div className="absolute inset-0 bg-cream/20" />
+          {/*
+            WHY THESE TWO LAYERS LIVE INSIDE THE FIXED CHILD — this is the
+            "one single canvas" fix.
+
+            The seam is a horizontal line that travels up the screen: above it
+            the hero's fixed plate paints, below it this one. The two videos
+            were already welded pixel-for-pixel, but the GRADING on either
+            side was not the same, and that is what betrayed the cut:
+
+              • the gold glow and the grain used to sit OUTSIDE this fixed
+                child, on section-relative divs. Section-relative means they
+                scroll with the section, so a grain texture was sliding
+                upward across a video nailed to the viewport. Sliding grain
+                against static grain is the single most visible "two blocks
+                overlapping" cue there is.
+              • the glow was also anchored differently (at 12% 0% of the
+                SECTION, versus 78% 8% of the VIEWPORT on the hero side), so
+                the two halves of the same image were lit differently.
+
+            Moved in here they are viewport-anchored and byte-identical to the
+            hero's, so the grain tiles line up across the seam and the light
+            is continuous. Keep this stack an exact mirror of the hero's.
+          */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(90% 70% at 78% 8%, rgba(217, 151, 30, 0.12), transparent 55%), radial-gradient(70% 60% at 12% 92%, rgba(217, 151, 30, 0.08), transparent 60%)',
+            }}
+          />
+          <div className="grain absolute inset-0" />
         </div>
-        {/* Section-relative grading on top: extra wash deepening for body
-            text, bottom fade into cream toward Projets, continuation of the
-            hero's golden glow, and the shared grain. */}
+        {/*
+          The only layers that remain section-relative are these two cream
+          washes, and they are safe precisely because both start at
+          `from-transparent` at the section's top edge: their contribution AT
+          the seam is exactly zero, so they cannot draw a step there. They
+          earn their keep further down — legibility behind the body copy, and
+          the fade that hands off to Projets.
+        */}
         <div className="absolute inset-0 bg-linear-to-b from-transparent via-cream/15 via-20% to-cream/15" />
         <div className="absolute inset-0 bg-linear-to-b from-transparent from-55% to-cream" />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(70% 45% at 12% 0%, rgba(217, 151, 30, 0.08), transparent 60%)',
-          }}
-        />
-        <div className="grain absolute inset-0" />
       </div>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-16 gap-y-16 md:grid-cols-12">

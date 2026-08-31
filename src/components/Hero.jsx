@@ -173,11 +173,30 @@ export default function Hero() {
       // Tighter seek threshold on phones (1/60 s ≈ 2.7 px of scroll) so the
       // very first pixels of a finger gesture already move the playhead —
       // no dead zone before the first petal lifts. Desktop keeps 1/30.
-      const seekEps = MOBILE_NO_PIN ? 1 / 60 : 1 / 30
+      /*
+        DESKTOP JUDDER, measured: both plates are 24 fps (ffprobe), so one
+        frame is 1/24 s — which over the desktop's one-screen scroll is ~6.6px.
+        The old epsilon of 1/30 s (~5.3px) was FINER than a frame, so a
+        trackpad — which emits many sub-pixel deltas per frame — kept ordering
+        seeks that decoded the frame already on screen. Those wasted decodes
+        queue up behind the useful ones and come back late: that is the
+        stutter.
+
+        Fix: snap the desktop target to the 24 fps grid and use half a frame
+        as the epsilon, so a genuine one-frame move always passes while
+        sub-frame jitter issues nothing at all. Same frames, far fewer seeks.
+        p=1 still lands on the closing frame the weld depends on.
+        Phones keep their existing values byte-for-byte.
+      */
+      const FPS = 24
+      const seekEps = MOBILE_NO_PIN ? 1 / 60 : 1 / (FPS * 2)
       const applySeek = () => {
         const video = bgVideoRef.current
         if (!video || !video.duration) return
-        const target = proxy.p * video.duration
+        const raw = proxy.p * video.duration
+        const target = MOBILE_NO_PIN
+          ? raw
+          : Math.min(Math.round(raw * FPS) / FPS, video.duration)
         if (video.seeking) {
           pendingSeek = target
         } else if (Math.abs(video.currentTime - target) > seekEps) {
@@ -220,11 +239,33 @@ export default function Hero() {
               // always returns the load-captured viewportH — stable.
               end: () => `+=${viewportH}`,
               pin: true,
-              scrub: 0.5,
+              /*
+                0.1, not 0.5. Half a second of catch-up easing is what made a
+                Mac trackpad feel desynchronised: the playhead kept arriving
+                late and then rushing to catch up. 0.1 tracks the finger
+                essentially 1:1 while still absorbing the momentum jitter that
+                scrub:true would pass straight through to the decoder.
+              */
+              scrub: 0.1,
               anticipatePin: 1,
               invalidateOnRefresh: true,
             },
       })
+      /*
+        Declared out here so the cleanup below can actually remove it. It used
+        to be a `const` scoped inside the `if` block, which meant the two
+        window listeners were never removed — and that is not cosmetic:
+
+        StrictMode double-invokes this effect in development, and every Vite
+        hot reload re-runs it again. Each run leaves another live
+        `primeOnGesture` closure on window. They are all {once:true}, so they
+        ALL fire on the first click anywhere on the page — including the
+        Projets CTA. The stale ones close over a `proxy` whose tween
+        gsap.context already reverted to p=0, so they compute
+        target = 0 * duration and command the video back to frame 0: a visible
+        snap to the start of the flight, mid-scroll, in dev only.
+      */
+      let primeOnGesture = null
       if (bgVideoRef.current) {
         // Property assignments (not addEventListener) stay idempotent across
         // StrictMode re-runs.
@@ -239,7 +280,7 @@ export default function Hero() {
           if (e.target.currentTime === 0) e.target.currentTime = 0.001
         }
         primeVideo(bgVideoRef.current)
-        const primeOnGesture = () => {
+        primeOnGesture = () => {
           primeVideo(bgVideoRef.current)
           applySeek()
         }
@@ -355,6 +396,14 @@ export default function Hero() {
       // this is the one piece of teardown they need.
       return () => {
         ScrollTrigger.removeEventListener('refreshInit', sizeCurtain)
+        // See primeOnGesture above. Removing an already-fired {once:true}
+        // listener is a harmless no-op, so this is safe on every path; in
+        // production the component mounts once and this only runs at teardown,
+        // leaving the iOS priming path bit-identical.
+        if (primeOnGesture) {
+          window.removeEventListener('touchstart', primeOnGesture)
+          window.removeEventListener('pointerdown', primeOnGesture)
+        }
         gsap.killTweensOf(gsap.utils.toArray('[data-trail]', scope.current || undefined))
       }
     },
@@ -543,7 +592,24 @@ export default function Hero() {
       // ZERO CSS viewport units: the height comes from the JS-captured
       // innerHeight, in px, from the very first paint (sizeCurtain keeps it
       // in sync on refreshes). Nothing here can change when Safari's bar moves.
-      style={{ minHeight: `${viewportH}px` }}
+      /*
+        will-change on the PINNED element only. ScrollTrigger pins with
+        pinType:'transform', so this section is transform-animated for the
+        whole hold — telling the compositor up front earns it a dedicated
+        layer instead of one promoted mid-gesture.
+
+        This is safe here for one specific reason: the section contains NO
+        position:fixed descendant. will-change:transform makes an element the
+        containing block for fixed descendants, which is exactly why the
+        background curtain track is a SIBLING of this section and not a child
+        (see the track's comment). The track and the Story weld must never
+        receive this — it would demote their `fixed inset-0` layers to
+        absolute and destroy both welds.
+      */
+      style={{
+        minHeight: `${viewportH}px`,
+        ...(MOBILE_NO_PIN ? null : { willChange: 'transform' }),
+      }}
       className="relative flex flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
     >
 
