@@ -150,11 +150,6 @@ export default function Hero() {
           .from('[data-letter]', { yPercent: 115, duration: 1.1, stagger: 0.055 })
           .from('[data-tagline]', { y: 24, autoAlpha: 0, duration: 0.8 }, '-=0.55')
           .from('[data-cta]', { y: 20, autoAlpha: 0, duration: 0.7 }, '-=0.45')
-          .from(
-            '[data-meta]',
-            { y: 12, autoAlpha: 0, duration: 0.6, stagger: 0.08 },
-            '-=0.4',
-          )
       }
 
       /*
@@ -681,12 +676,6 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Bottom meta line — z-10 keeps it above the z-[5] trail cards */}
-      <div className="absolute inset-x-6 bottom-6 z-10 text-xs uppercase tracking-widest text-ink/60 md:inset-x-10 md:bottom-8">
-        <span data-meta>
-          Paris <span className="text-accent">—</span> {new Date().getFullYear()}
-        </span>
-      </div>
     </section>
 
     {/* Phone-only scroll runway (height set by sizeCurtain; 0 elsewhere):

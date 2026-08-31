@@ -119,21 +119,106 @@ export default function Story() {
         silhouette on true transparency — he occludes the daisy behind him,
         while everything around his outline stays visible. No blend modes
         involved, so no stacking-context fragility.
+
+        NOW ON THE GPU. The 2D-canvas version of this ran a 547k-pixel JS
+        loop bracketed by getImageData/putImageData — a full GPU→CPU→GPU
+        round trip per decoded frame, ~8-15ms on the main thread, burned
+        inside onseeked while the user was mid-scroll. That was the desktop
+        judder.
+
+        The WebGL path runs the SAME algorithm with the same thresholds
+        (mn>130, spread 16→30 ramp) as a fragment shader: per frame the CPU
+        does one texImage2D upload and one draw call — well under a
+        millisecond — and the pixels never come back to the CPU.
+        premultipliedAlpha:false matches putImageData's compositing
+        semantics exactly, so edges render identically. If context creation
+        fails (blocklisted driver), keyAvatar2D below is the original code,
+        verbatim.
       */
-      const renderAvatarFrame = () => {
-        const video = avatarRef.current
-        const canvas = avatarCanvasRef.current
-        if (!video || !canvas || video.readyState < 2 || !video.videoWidth) return
-        // The canvas displays at ~224-320px wide; keying the native 1244px
-        // frame loops over 4× more pixels than needed and janks touch
-        // scrolling. 640px keeps edges crisp at every rendered size.
-        const kw = Math.min(video.videoWidth, 640)
-        const kh = Math.round((video.videoHeight / video.videoWidth) * kw)
-        if (canvas.width !== kw) {
-          canvas.width = kw
-          canvas.height = kh
+      const AVATAR_FRAG = `
+        precision mediump float;
+        varying vec2 v_uv;
+        uniform sampler2D u_tex;
+        void main() {
+          vec4 c = texture2D(u_tex, v_uv);
+          float mx = max(c.r, max(c.g, c.b)) * 255.0;
+          float mn = min(c.r, min(c.g, c.b)) * 255.0;
+          float spread = mx - mn;
+          float a = 1.0;
+          if (mn > 130.0) {
+            if (spread < 16.0) a = 0.0;
+            else if (spread < 30.0) a = (spread - 16.0) / 14.0;
+          }
+          gl_FragColor = vec4(c.rgb, a);
+        }`
+      const AVATAR_VERT = `
+        attribute vec2 a_pos;
+        varying vec2 v_uv;
+        void main() {
+          v_uv = a_pos * 0.5 + 0.5;
+          gl_Position = vec4(a_pos, 0.0, 1.0);
+        }`
+      // Lazily initialised: null = not tried yet, false = unavailable
+      // (this canvas then falls back to the 2D path forever).
+      let glState = null
+      const initAvatarGL = (canvas) => {
+        const gl = canvas.getContext('webgl', {
+          premultipliedAlpha: false,
+          alpha: true,
+          antialias: false,
+          preserveDrawingBuffer: false,
+        })
+        if (!gl) return false
+        const mk = (type, src) => {
+          const s = gl.createShader(type)
+          gl.shaderSource(s, src)
+          gl.compileShader(s)
+          return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null
         }
+        const vs = mk(gl.VERTEX_SHADER, AVATAR_VERT)
+        const fs = mk(gl.FRAGMENT_SHADER, AVATAR_FRAG)
+        if (!vs || !fs) return false
+        const prog = gl.createProgram()
+        gl.attachShader(prog, vs)
+        gl.attachShader(prog, fs)
+        gl.linkProgram(prog)
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return false
+        gl.useProgram(prog)
+        const buf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+          gl.STATIC_DRAW,
+        )
+        const loc = gl.getAttribLocation(prog, 'a_pos')
+        gl.enableVertexAttribArray(loc)
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
+        const tex = gl.createTexture()
+        gl.bindTexture(gl.TEXTURE_2D, tex)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+        // Video frames arrive top-row-first; flip so the quad's uv origin
+        // (bottom-left) shows the image upright.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+        // A lost context invalidates every object above — back to "not
+        // tried" so the next frame re-initialises on the restored context.
+        canvas.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault()
+          glState = null
+        })
+        canvas.addEventListener('webglcontextrestored', () => {
+          glState = null
+          renderAvatarFrame()
+        })
+        return { gl }
+      }
+      // The original CPU path, kept verbatim as the fallback.
+      const keyAvatar2D = (video, canvas, kw, kh) => {
         const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        if (!ctx) return
         ctx.drawImage(video, 0, 0, kw, kh)
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
         const d = frame.data
@@ -150,6 +235,32 @@ export default function Story() {
           }
         }
         ctx.putImageData(frame, 0, 0)
+      }
+      const renderAvatarFrame = () => {
+        const video = avatarRef.current
+        const canvas = avatarCanvasRef.current
+        if (!video || !canvas || video.readyState < 2 || !video.videoWidth) return
+        // The canvas displays at ~224-320px wide; keying the native frame at
+        // more than 640px costs upload/fill for pixels no one ever sees.
+        const kw = Math.min(video.videoWidth, 640)
+        const kh = Math.round((video.videoHeight / video.videoWidth) * kw)
+        if (canvas.width !== kw || canvas.height !== kh) {
+          canvas.width = kw
+          canvas.height = kh
+        }
+        if (glState === null) glState = initAvatarGL(canvas)
+        if (glState) {
+          const { gl } = glState
+          if (gl.isContextLost()) {
+            glState = null
+            return
+          }
+          gl.viewport(0, 0, kw, kh)
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video)
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+        } else {
+          keyAvatar2D(video, canvas, kw, kh)
+        }
       }
 
       gsap
@@ -350,14 +461,12 @@ export default function Story() {
             him while his surroundings stay transparent. No card, no fill,
             no border. */}
         <div className="relative z-10 md:col-span-4">
-          {/* Phones only: the background plate was narrowed and pushed left
-              (185vw/-20vw) to open up the petal-flight corridor, which moved
-              the daisy's golden disc from 46.1vw to 25.5vw. The avatar is
-              composed to stand ON that disc, so he travels the same -20.6vw
-              — figure and name plate together — and the relationship is
-              preserved at every phone width because both are in vw.
-              max-md: keeps tablet and desktop literally untouched. */}
-          <div className="max-md:relative max-md:left-[-20.6vw] md:mt-24">
+          {/* Phones: perfectly centered (the figure's own mx-auto inside the
+              symmetric px-6 gutters does it — no offset classes). He briefly
+              travelled -20.6vw to stand on the daisy's shifted disc, but the
+              centred composition won out over that alignment.
+              md:mt-24 is the tablet/desktop position, untouched. */}
+          <div className="md:mt-24">
             <figure
               data-media
               className="mx-auto aspect-[3/4] w-56 border-0 bg-transparent md:w-full md:max-w-xs"
