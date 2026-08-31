@@ -1,0 +1,232 @@
+import { useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+
+/*
+  Cinematic intro — four phases, one GSAP master timeline.
+
+    1. Black screen, scroll locked, the powder-bloom video plays fullscreen
+       and dissipates with a long crossfade before its final frame.
+    2. The STUDIO CÉSURE lockup fades in, pure white on absolute black.
+    3. The black screen is CUT IN TWO — the site's own gesture, a césure:
+       top half rises, bottom half falls (power3.inOut), revealing the hero.
+       The logo never moves; mix-blend-difference re-derives it live, white
+       over the black panels, near-black over the cream page. Scroll unlocks
+       only when the opening completes.
+    4. Lives in Hero.jsx (the CTA float is scroll business, not intro
+       business): see the [data-cta-float] timeline there.
+
+  ARCHITECTURE NOTES — the load-bearing decisions:
+
+  • The three layers (video, panels, logo) are SIBLING fixed elements
+    rendered from a fragment, never nested in a wrapper. A positioned
+    wrapper with z-index would become an isolated stacking context, and
+    mix-blend-difference only sees the backdrop INSIDE its context — the
+    logo would stay white over the revealed page. As direct children of the
+    static App root they blend against the real page. Do not wrap them.
+
+  • The scroll lock never touches body position or the DOM's geometry:
+    overflow:hidden on <html> (clamps the scroll range to 0 — which also
+    neutralises normalizeScroll, since GSAP then has nowhere to scroll to)
+    plus non-passive wheel/touchmove/keydown guards. heroH, the pin, and
+    every ScrollTrigger measure exactly what they measured before.
+
+  • The hero's own letter reveal waits for this sequence via the
+    window.__CESURE_INTRO_DONE__ flag + 'cesure:intro-done' event (flag
+    first, so mount order can never deadlock the relay).
+
+  • Every failure path — autoplay refused (iOS Low Power), video 404, slow
+    network — degrades by SKIPPING AHEAD, never by trapping the user on
+    black: the video gets a hard time budget, and play() rejection jumps
+    straight to the logo phase.
+
+  • ?nointro in the URL skips the whole sequence (same escape-hatch
+    convention as ?nonormalize / ?debug).
+*/
+
+const SCROLL_KEYS = new Set([
+  ' ',
+  'ArrowDown',
+  'ArrowUp',
+  'PageDown',
+  'PageUp',
+  'Home',
+  'End',
+])
+
+const removeShield = () => {
+  document.getElementById('intro-shield')?.remove()
+}
+
+const finishFlag = () => {
+  window.__CESURE_INTRO_DONE__ = true
+  window.dispatchEvent(new Event('cesure:intro-done'))
+}
+
+export default function Preloader() {
+  // Two refs on purpose: the WRAPPER is what fades (GSAP), the VIDEO is
+  // what plays — calling .play() on the div is a crash, not a no-op.
+  const videoWrapRef = useRef(null)
+  const videoRef = useRef(null)
+  const topRef = useRef(null)
+  const bottomRef = useRef(null)
+  const logoRef = useRef(null)
+  const [done, setDone] = useState(false)
+
+  useGSAP(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const skip = reduced || location.search.includes('nointro')
+    if (skip) {
+      removeShield()
+      finishFlag()
+      setDone(true)
+      return undefined
+    }
+
+    // ---- scroll lock (geometry-neutral, see notes above) ----
+    const prevOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    const block = (e) => e.preventDefault()
+    const blockKeys = (e) => {
+      if (SCROLL_KEYS.has(e.key)) e.preventDefault()
+    }
+    window.addEventListener('wheel', block, { passive: false })
+    window.addEventListener('touchmove', block, { passive: false })
+    window.addEventListener('keydown', blockKeys)
+    let unlocked = false
+    const unlock = () => {
+      if (unlocked) return
+      unlocked = true
+      document.documentElement.style.overflow = prevOverflow
+      window.removeEventListener('wheel', block)
+      window.removeEventListener('touchmove', block)
+      window.removeEventListener('keydown', blockKeys)
+    }
+
+    // React has painted our own black layers — the HTML shield can go.
+    removeShield()
+
+    /*
+      Phases 2 → 3, built paused; started once the video hands over (or
+      immediately on any video failure). The video crossfades OVER the
+      logo's arrival — the smoke's last wisps dissolve as the wordmark
+      surfaces, per the "grande fluidité" brief.
+    */
+    const tl = gsap.timeline({ paused: true })
+    tl.to(videoWrapRef.current, { autoAlpha: 0, duration: 0.75, ease: 'power2.inOut' }, 0)
+      .fromTo(
+        logoRef.current,
+        { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 1.1, ease: 'power3.out' },
+        0.35,
+      )
+      // A breath to read the lockup.
+      .addLabel('open', '+=0.85')
+      .to(topRef.current, { yPercent: -100, duration: 1.2, ease: 'power3.inOut' }, 'open')
+      .to(bottomRef.current, { yPercent: 100, duration: 1.2, ease: 'power3.inOut' }, 'open')
+      // "Une fois l'ouverture terminée, le scroll est débloqué."
+      .call(() => {
+        unlock()
+        finishFlag()
+      })
+      .to(logoRef.current, { autoAlpha: 0, duration: 0.5, ease: 'power2.out' }, '-=0.05')
+      .call(() => setDone(true))
+
+    // ---- phase 1: the video, with every escape route wired ----
+    const video = videoRef.current
+    let started = false
+    const handover = () => {
+      if (started) return
+      started = true
+      tl.play()
+    }
+    let fadeArmed = false
+    const onTime = () => {
+      // Begin the dissolve shortly before the last frame — never a hard cut.
+      if (!fadeArmed && video.duration && video.currentTime > video.duration - 0.8) {
+        fadeArmed = true
+        handover()
+      }
+    }
+    video.addEventListener('timeupdate', onTime)
+    video.addEventListener('ended', handover)
+    video.addEventListener('error', handover)
+    // Slow network: don't hold a black screen hostage. If the video can't
+    // start within 4s, move on; if it started, cap the whole phase at 7s.
+    const bootTimeout = setTimeout(() => {
+      if (video.readyState < 2) handover()
+    }, 4000)
+    const hardTimeout = setTimeout(handover, 7000)
+    const p = video.play()
+    if (p && typeof p.then === 'function') {
+      // Autoplay refused (Low Power Mode): skip the smoke, keep the logo.
+      p.catch(handover)
+    }
+
+    return () => {
+      clearTimeout(bootTimeout)
+      clearTimeout(hardTimeout)
+      video.removeEventListener('timeupdate', onTime)
+      video.removeEventListener('ended', handover)
+      video.removeEventListener('error', handover)
+      // StrictMode remount / teardown mid-intro: never leave the page locked.
+      unlock()
+      if (!window.__CESURE_INTRO_DONE__) finishFlag()
+    }
+  }, [])
+
+  if (done) return null
+
+  return (
+    <>
+      {/* Phase 3 panels — in place from the first frame so the black is
+          continuous; the seam is invisible until they part. */}
+      <div
+        ref={topRef}
+        aria-hidden="true"
+        className="fixed inset-x-0 top-0 z-[1001] h-1/2 bg-black will-change-transform"
+      />
+      <div
+        ref={bottomRef}
+        aria-hidden="true"
+        className="fixed inset-x-0 bottom-0 z-[1001] h-1/2 bg-black will-change-transform"
+      />
+      {/* Phase 1 video, above the panels, below the logo. */}
+      <div ref={videoWrapRef} aria-hidden="true" className="fixed inset-0 z-[1001]">
+        <video
+          ref={videoRef}
+          src="/videos/intro.mp4"
+          muted
+          playsInline
+          autoPlay
+          preload="auto"
+          className="h-full w-full object-cover"
+        />
+      </div>
+      {/*
+        The lockup — the hero H1's exact typographic system (extended
+        Archivo eyebrow over Fraunces), white, blended with difference so
+        phase 3 re-derives it against whatever passes behind: white on the
+        black panels, near-black once the cream page is revealed. The
+        chromatic inversion IS the blend mode; no filter gymnastics needed
+        on live text.
+      */}
+      <div
+        ref={logoRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-[1002] flex items-center justify-center px-6 opacity-0 [mix-blend-mode:difference]"
+      >
+        <div className="text-center font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] text-white md:text-[9.5vw] lg:text-[9vw]">
+          <span className="type-studio mb-3 block text-[0.24em] tracking-[0.52em] md:mb-4 [&>span:last-child]:-mr-[0.52em]">
+            {'STUDIO'.split('').map((l, i) => (
+              <span key={i} className="inline-block">
+                {l}
+              </span>
+            ))}
+          </span>
+          <span className="block">CÉSURE</span>
+        </div>
+      </div>
+    </>
+  )
+}

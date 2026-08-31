@@ -22,6 +22,11 @@
     <title>Césure — Studio digital</title>
   </head>
   <body>
+    <!-- First-paint shield: the intro demands a screen that is black from
+         the very first byte, before React or any bundle arrives. The
+         Preloader component removes it the moment it takes over (and
+         immediately under reduced motion / ?nointro). -->
+    <div id="intro-shield" style="position: fixed; inset: 0; z-index: 1000; background: #000"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

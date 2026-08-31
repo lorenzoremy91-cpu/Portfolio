@@ -154,12 +154,28 @@ export default function Hero() {
       // the cursor moves. Skipped entirely under prefers-reduced-motion:
       // .from() tweens never created means everything simply renders in its
       // final state.
+      /*
+        RELAY WITH THE PRELOADER: the letters must not rise under the black
+        panels. The timeline is created paused (its .from()s still
+        immediateRender, so the letters sit hidden in their start state) and
+        plays on 'cesure:intro-done' — fired exactly when the césure opening
+        completes, as the preloader's white lockup fades: its logo hands off
+        to this one. The flag covers every ordering (preloader may finish
+        before this effect runs) and the skip paths (?nointro, reduced
+        motion, preloader errors) all set it.
+      */
+      let startIntro = null
       if (!REDUCED_MQ.matches) {
-        gsap
-          .timeline({ defaults: { ease: 'power4.out' } })
+        const introDone = window.__CESURE_INTRO_DONE__ === true
+        const introTl = gsap
+          .timeline({ defaults: { ease: 'power4.out' }, paused: !introDone })
           .from('[data-letter]', { yPercent: 115, duration: 1.1, stagger: 0.055 })
           .from('[data-tagline]', { y: 24, autoAlpha: 0, duration: 0.8 }, '-=0.55')
           .from('[data-cta]', { y: 20, autoAlpha: 0, duration: 0.7 }, '-=0.45')
+        if (!introDone) {
+          startIntro = () => introTl.play()
+          window.addEventListener('cesure:intro-done', startIntro, { once: true })
+        }
       }
 
       /*
@@ -193,6 +209,100 @@ export default function Hero() {
         }
         btn.addEventListener('mousemove', magnetMove)
         btn.addEventListener('mouseleave', magnetLeave)
+      }
+
+      /*
+        PHASE 4 — the CTA floats with the flight. Scrubbed to the exact
+        same scroll ranges as the background scrub (pin range on desktop,
+        the absolute 0→viewportH window on phones), the button glides from
+        its resting place to the geometric center of the screen over the
+        first 35% of the scene, HOLDS that center for the rest of the
+        flight, then dissolves as page 2 approaches.
+
+        The hold is where the two branches differ: the pinned desktop
+        section doesn't move, so holding center means holding a constant y
+        (the second tween is a flat no-op). On phones the section itself
+        scrolls up under the button, so holding center means y must grow
+        exactly as fast as the scroll — the ease:'none' tween to
+        viewportH + delta does precisely that, in the same scroll units.
+
+        The center delta is captured ONCE at setup, in SECTION-RELATIVE
+        coordinates — the hard-won lesson of this feature: a live
+        getBoundingClientRect inside the tween's function values re-resolved
+        while the pin had the section translated (+scrollY), poisoning the
+        delta by exactly one scroll offset and launching the button off the
+        top of the screen. Measuring (cta − section) cancels the pin
+        transform, the scroll position AND the paused intro's +20px
+        from-state (subtracted via gsap.getProperty), and freezing it at
+        setup matches the heroH philosophy: nothing Safari or ScrollTrigger
+        does later can re-time it.
+      */
+      if (!REDUCED_MQ.matches) {
+        let ctaD0 = 0
+        {
+          const host = scope.current?.querySelector('[data-cta]')
+          if (host && scope.current) {
+            const r = host.getBoundingClientRect()
+            const s = scope.current.getBoundingClientRect()
+            const introY = Number(gsap.getProperty(host, 'y')) || 0
+            ctaD0 =
+              viewportH / 2 - (r.top - s.top - introY + r.height / 2)
+          }
+        }
+        const d0 = () => ctaD0
+        gsap
+          .timeline({
+            scrollTrigger: MOBILE_NO_PIN
+              ? {
+                  start: () => 0,
+                  end: () => viewportH,
+                  scrub: 0.15,
+                  invalidateOnRefresh: true,
+                }
+              : {
+                  trigger: scope.current,
+                  start: 'top top',
+                  end: () => `+=${viewportH}`,
+                  scrub: 0.1,
+                  invalidateOnRefresh: true,
+                },
+          })
+          .to(
+            '[data-cta-float]',
+            {
+              y: () => (MOBILE_NO_PIN ? viewportH * 0.35 : 0) + d0(),
+              duration: 0.35,
+              ease: 'power2.out',
+            },
+            0,
+          )
+          /*
+            The hold segments must climb at EXACTLY the scroll rate on
+            phones — 1 viewportH of y per 1 viewportH of scroll — so each
+            endpoint is (progress × viewportH) + d0, never a flat
+            viewportH + d0 (that slope, 1.44×, sent the button sailing past
+            center). The fade segment keeps the same slope so the button is
+            still centered while it dissolves.
+          */
+          .to(
+            '[data-cta-float]',
+            {
+              y: () => (MOBILE_NO_PIN ? viewportH * 0.8 : 0) + d0(),
+              duration: 0.45,
+              ease: 'none',
+            },
+            0.35,
+          )
+          .to(
+            '[data-cta-float]',
+            {
+              y: () => (MOBILE_NO_PIN ? viewportH : 0) + d0(),
+              autoAlpha: 0,
+              duration: 0.2,
+              ease: 'none',
+            },
+            0.8,
+          )
       }
 
       /*
@@ -440,6 +550,7 @@ export default function Hero() {
           ctaRef.current.removeEventListener('mousemove', magnetMove)
           ctaRef.current.removeEventListener('mouseleave', magnetLeave)
         }
+        if (startIntro) window.removeEventListener('cesure:intro-done', startIntro)
         gsap.killTweensOf(gsap.utils.toArray('[data-trail]', scope.current || undefined))
       }
     },
@@ -733,7 +844,12 @@ export default function Hero() {
           the CSS transition never fights GSAP's per-tick transform writes —
           on one element the two would double-smooth into mush.
         */}
+        {/* Three transform layers, one owner each: [data-cta] belongs to
+            the intro reveal, [data-cta-float] to the scroll-synced float
+            (phase 4), the <a> to the magnetic pull, the inner span to CSS
+            hover/active. Any two sharing an element would fight. */}
         <div data-cta className="mt-8">
+          <div data-cta-float className="will-change-transform">
           <a ref={ctaRef} href="#work" className="group inline-block will-change-transform">
             <span
               // min-h-11 = 44px: the minimum comfortable tap target on
@@ -750,6 +866,7 @@ export default function Hero() {
               </span>
             </span>
           </a>
+          </div>
         </div>
       </div>
 

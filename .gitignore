@@ -6,3 +6,5 @@ dist
 # Design references dropped into the project root
 *.HEIC
 *.heic
+Screen Recording*.mov
+Screenshot*.png
