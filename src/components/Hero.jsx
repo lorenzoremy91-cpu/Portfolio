@@ -5,9 +5,22 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
-// Mobile browsers fire resize as their URL bar collapses/expands during
-// scroll; refreshing every trigger on those is a major stutter source.
+/*
+  Global config, executed at module load — i.e. BEFORE any ScrollTrigger is
+  created anywhere in the app (this module is imported by App before Hero
+  renders, and Story creates its triggers later).
+*/
 ScrollTrigger.config({ ignoreMobileResize: true })
+
+/*
+  pinType 'transform': GSAP's default on touch devices is position:fixed
+  pinning, and a fixed pinned element is exactly what iOS Safari re-lays-out
+  when the address bar slides — the classic pinSpacer collapse. Transform
+  pinning keeps the element in normal flow and merely translates it, so the
+  bar has nothing to disturb. Only the desktop branch pins at all, but this
+  makes any pin safe on any device that reaches it (iPads included).
+*/
+ScrollTrigger.defaults({ pinType: 'transform' })
 
 /*
   Scrolling is NATIVE everywhere — normalizeScroll was tried for the
@@ -20,7 +33,20 @@ ScrollTrigger.config({ ignoreMobileResize: true })
   one-viewport exit instead of a pinned hold. Desktop keeps the pinned
   cinematic hold.
 */
-const MOBILE_NO_PIN = window.matchMedia('(max-width: 767px)').matches
+/*
+  Belt-and-braces phone detection. A width media query alone is not enough:
+  if it ever resolves false on a real device (a stale viewport meta, an
+  unusual zoom/text-size setting, a webview reporting a wide layout), the
+  DESKTOP branch would run on a phone — creating a pin, hence a pinSpacer,
+  hence exactly the reported iOS collapse. Any of these three signals is
+  enough to take the no-pin path:
+    • narrow layout, • coarse pointer (finger), • no hover capability.
+*/
+const NARROW_MQ = window.matchMedia('(max-width: 767px)')
+const COARSE_MQ = window.matchMedia('(pointer: coarse)')
+const NO_HOVER_MQ = window.matchMedia('(hover: none)')
+const MOBILE_NO_PIN =
+  NARROW_MQ.matches || COARSE_MQ.matches || NO_HOVER_MQ.matches
 
 /*
   HEIGHT AUTHORITY — captured in JS ONCE at load (iOS toolbar show/hide can
@@ -269,6 +295,19 @@ export default function Hero() {
         initialised, so the setting sticks.
       */
       ScrollTrigger.config({ ignoreMobileResize: true })
+
+      /*
+        normalizeScroll — GSAP's official iOS weapon: it takes scrolling onto
+        the main thread, which stops Safari from showing/hiding its address
+        bar at all, so the resize that collapses everything never happens.
+
+        Scoped to touch devices only, and escapable: it was tried once before
+        and felt erratic, so `?nonormalize` in the URL turns it off without a
+        redeploy if it misbehaves again on a specific device.
+      */
+      if (MOBILE_NO_PIN && !location.search.includes('nonormalize')) {
+        ScrollTrigger.normalizeScroll(true)
+      }
 
       // Cleanup (runs on context revert): kill any in-flight spawn tweens.
       // Spawn timelines are deliberately created OUTSIDE this context (plain
