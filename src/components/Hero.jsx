@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -150,6 +151,50 @@ export default function Hero() {
 
   useGSAP(
     () => {
+      /*
+        LENIS — the silk layer, DESKTOP FINE-POINTER ONLY. Native wheel
+        deltas on mouse/trackpad arrive as discrete jumps; Lenis
+        interpolates the window's scroll position through an exponential
+        lerp, which is what the whole scrubbed scene inherits (video
+        playhead, pin, fades all read scrollY). The awwwards-standard
+        integration: Lenis owns the wheel, GSAP's ticker drives its raf,
+        ScrollTrigger updates on its scroll events.
+
+        Deliberately ABSENT everywhere else: phones keep the native
+        pipeline + normalizeScroll that was hard-won on real iOS, and
+        reduced-motion users keep raw native scroll. The preloader's
+        scroll lock still holds under Lenis: overflow:hidden clamps the
+        scrollable range to zero, so its lerp has nowhere to go.
+        window.__lenis lets the nav veil perform its instant covered
+        jumps through Lenis instead of around it.
+      */
+      let lenis = null
+      let lenisRaf = null
+      let lenisStart = null
+      if (!MOBILE_NO_PIN && FINE_POINTER_MQ.matches && !REDUCED_MQ.matches) {
+        lenis = new Lenis({ autoRaf: false, lerp: 0.11, wheelMultiplier: 1 })
+        window.__lenis = lenis
+        lenisRaf = (time) => lenis.raf(time * 1000)
+        gsap.ticker.add(lenisRaf)
+        lenis.on('scroll', ScrollTrigger.update)
+        /*
+          THE INTRO LOCK MUST SPEAK LENIS. Caught in testing: during the
+          preloader, dispatching wheel events scrolled the page to 1436px
+          under the black panels. The lock's guards call preventDefault,
+          which stops the BROWSER's native scroll — but not Lenis's own
+          wheel listener, which happily accumulated delta and drove its
+          own lerp. (overflow:hidden doesn't save it either: Lenis
+          computes its limit from content height, not overflow.)
+          So Lenis starts STOPPED whenever the intro is still running and
+          resumes on the same relay event the hero letters ride.
+        */
+        if (window.__CESURE_INTRO_DONE__ !== true) {
+          lenis.stop()
+          lenisStart = () => lenis.start()
+          window.addEventListener('cesure:intro-done', lenisStart, { once: true })
+        }
+      }
+
       // Intro reveal — typography only; the trail cards stay hidden until
       // the cursor moves. Skipped entirely under prefers-reduced-motion:
       // .from() tweens never created means everything simply renders in its
@@ -205,8 +250,11 @@ export default function Hero() {
       let magnetLeave = null
       if (FINE_POINTER_MQ.matches && !REDUCED_MQ.matches && ctaRef.current) {
         const btn = ctaRef.current
+        const label = btn.querySelector('[data-cta-label]')
         const xTo = gsap.quickTo(btn, 'x', { duration: 0.45, ease: 'power3.out' })
         const yTo = gsap.quickTo(btn, 'y', { duration: 0.45, ease: 'power3.out' })
+        const lxTo = label && gsap.quickTo(label, 'x', { duration: 0.6, ease: 'power3.out' })
+        const lyTo = label && gsap.quickTo(label, 'y', { duration: 0.6, ease: 'power3.out' })
         magnetMove = (e) => {
           /*
             Scroll guard: browsers dispatch SYNTHETIC mousemove events
@@ -221,11 +269,19 @@ export default function Hero() {
             return
           }
           const r = btn.getBoundingClientRect()
-          xTo((e.clientX - (r.left + r.width / 2)) * 0.3)
-          yTo((e.clientY - (r.top + r.height / 2)) * 0.42)
+          const dx = e.clientX - (r.left + r.width / 2)
+          const dy = e.clientY - (r.top + r.height / 2)
+          xTo(dx * 0.3)
+          yTo(dy * 0.42)
+          // The label chases a little further on a slower spring — the
+          // text visibly leads the pill toward the cursor.
+          if (lxTo) lxTo(dx * 0.16)
+          if (lyTo) lyTo(dy * 0.2)
         }
         magnetLeave = () => {
           gsap.to(btn, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.42)' })
+          if (label)
+            gsap.to(label, { x: 0, y: 0, duration: 0.85, ease: 'elastic.out(1, 0.38)' })
         }
         btn.addEventListener('mousemove', magnetMove)
         btn.addEventListener('mouseleave', magnetLeave)
@@ -257,19 +313,41 @@ export default function Hero() {
         poison.
       */
       if (!REDUCED_MQ.matches) {
+        /*
+          The exit: a fade paired with a slight scale-down, so the button
+          recedes INTO the scene instead of switching off.
+
+          Two properties, two ELEMENTS, deliberately:
+            • autoAlpha on the float wrapper (the CSS-centered one).
+            • scale on the inner [data-cta] — NEVER on the wrapper. On
+              phones the wrapper is centered with Tailwind's standalone
+              `translate` property, and a GSAP transform tween there
+              makes GSAP fold the independent transforms and write
+              `translate:none` inline. Inline styles ignore media
+              queries, so that survives a rotation into landscape (where
+              the max-md classes switch off) and drags the button
+              off-center. [data-cta] carries no CSS transform at all.
+
+          scrub: phones keep lockstep (true) — a 0.8s catch-up would let
+          the fixed, z-20 button ghost over the rising Story section
+          after a fast flick, still intercepting taps until autoAlpha
+          reaches 0. Desktop takes the silk 0.8.
+        */
+        const exitST = {
+          start: () => viewportH * 0.72,
+          end: () => viewportH * 0.92,
+          scrub: MOBILE_NO_PIN ? true : 0.8,
+          invalidateOnRefresh: true,
+        }
         gsap.fromTo(
           '[data-cta-float]',
           { autoAlpha: 1 },
-          {
-            autoAlpha: 0,
-            ease: 'none',
-            scrollTrigger: {
-              start: () => viewportH * 0.72,
-              end: () => viewportH * 0.92,
-              scrub: true,
-              invalidateOnRefresh: true,
-            },
-          },
+          { autoAlpha: 0, ease: 'none', scrollTrigger: exitST },
+        )
+        gsap.fromTo(
+          '[data-cta-scale]',
+          { scale: 1 },
+          { scale: 0.9, ease: 'none', scrollTrigger: { ...exitST } },
         )
       }
 
@@ -350,13 +428,20 @@ export default function Hero() {
               end: () => `+=${viewportH}`,
               pin: true,
               /*
-                0.1, not 0.5. Half a second of catch-up easing is what made a
-                Mac trackpad feel desynchronised: the playhead kept arriving
-                late and then rushing to catch up. 0.1 tracks the finger
-                essentially 1:1 while still absorbing the momentum jitter that
-                scrub:true would pass straight through to the decoder.
+                0.8 — the silk setting, third calibration of this number.
+                0.5 felt desynchronised (the playhead arrived late then
+                rushed); 0.1 tracked 1:1 but handed every discrete wheel
+                step straight to a 24fps decoder — the "haché" feel: the
+                video can only show 24 frames a second, and instant
+                tracking makes those steps land in bursts. 0.8 spreads
+                them evenly in time, which reads as liquid, and Lenis
+                upstream removes the wheel's raw steps before they even
+                reach the scrub. Known trade-off, accepted: after a very
+                fast flick the playhead finishes the flight ~a beat after
+                the scroll does — petals still settling as page 2 rises,
+                which reads as continuity, not desync.
               */
-              scrub: 0.1,
+              scrub: 0.8,
               anticipatePin: 1,
               invalidateOnRefresh: true,
             },
@@ -505,6 +590,12 @@ export default function Hero() {
       // gsap in spawnCard) so they don't accumulate in context.data forever —
       // this is the one piece of teardown they need.
       return () => {
+        if (lenis) {
+          if (lenisStart) window.removeEventListener('cesure:intro-done', lenisStart)
+          gsap.ticker.remove(lenisRaf)
+          lenis.destroy()
+          if (window.__lenis === lenis) delete window.__lenis
+        }
         ScrollTrigger.removeEventListener('refreshInit', sizeCurtain)
         // See primeOnGesture above. Removing an already-fired {once:true}
         // listener is a harmless no-op, so this is safe on every path; in
@@ -766,7 +857,12 @@ export default function Hero() {
       <div className="relative z-10 mx-auto w-full max-w-4xl text-center max-md:mt-[6vh] md:-mt-[15vh]">
         <h1
           aria-label={TITLE}
-          className="font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] md:text-[9.5vw] lg:text-[9vw]"
+          // translateZ(0): the pinned section translates by fractional
+          // scroll values every frame, and re-rasterising serif glyphs at
+          // shifting sub-pixel offsets is the "trembling" — its own
+          // composited layer rasterises the text once and moves the
+          // texture instead.
+          className="font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] [transform:translateZ(0)] [backface-visibility:hidden] md:text-[9.5vw] lg:text-[9vw]"
         >
           {/* Eyebrow line — extended Archivo (.type-studio) against the
               Fraunces display below: the tech layer over the artisanal one.
@@ -838,22 +934,63 @@ export default function Hero() {
           className="max-md:fixed max-md:left-1/2 max-md:top-1/2 max-md:z-20 max-md:-translate-x-1/2 max-md:-translate-y-1/2"
         >
           <div data-cta className="mt-8 max-md:mt-0">
-          <a ref={ctaRef} href="#work" className="group inline-block will-change-transform">
+          {/* Sole owner of the exit scale. Its own element because
+              [data-cta] already carries the intro reveal's y, and
+              stacking a scrubbed fromTo on top of a one-shot .from
+              entangles their transform states (observed: the button
+              stuck at translateY(20px) scale(0.9) at scroll 0). One
+              property, one element, one owner. */}
+          <div data-cta-scale>
+          <a
+            ref={ctaRef}
+            href="#work"
+            /*
+              Explicit navigation, because removing CSS scroll-behavior
+              left this anchor as a raw instant fragment jump — and on
+              desktop an in-flight Lenis lerp would silently rewrite the
+              scroll position on its next tick, undoing the click
+              entirely. Through Lenis when it owns the scroll; a plain
+              smooth scrollIntoView otherwise (the JS option works
+              regardless of the CSS property). The href stays for
+              middle-click, keyboard and no-JS.
+            */
+            onClick={(e) => {
+              const target = document.querySelector('#work')
+              if (!target) return
+              e.preventDefault()
+              if (window.__lenis) window.__lenis.scrollTo(target, { duration: 1.4 })
+              else
+                target.scrollIntoView({
+                  behavior: REDUCED_MQ.matches ? 'auto' : 'smooth',
+                  block: 'start',
+                })
+            }}
+            className="group inline-block will-change-transform"
+          >
             <span
               // min-h-11 = 44px: the minimum comfortable tap target on
               // phones (the pill measured 40px before, just under the
-              // threshold).
-              className="inline-flex min-h-11 items-center gap-3 rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_28px_-14px_rgba(16,16,16,0.4)] transition-[transform,background-color,color,box-shadow] duration-300 ease-out group-hover:scale-[1.04] group-hover:bg-ink group-hover:text-cream group-hover:shadow-[0_20px_40px_-16px_rgba(16,16,16,0.55)] group-active:scale-[0.96] group-active:duration-150"
+              // threshold). relative+overflow clip the sheen sweep — a
+              // soft light band that crosses the pill once per hover,
+              // transform-only (before:translate-x), the jeweller's touch.
+              className="relative inline-flex min-h-11 items-center overflow-hidden rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_28px_-14px_rgba(16,16,16,0.4)] transition-[transform,background-color,color,box-shadow] duration-300 ease-out before:pointer-events-none before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent before:transition-transform before:duration-0 before:ease-out group-hover:before:duration-700 group-hover:scale-[1.04] group-hover:bg-ink group-hover:text-cream group-hover:shadow-[0_20px_40px_-16px_rgba(16,16,16,0.55)] group-hover:before:translate-x-full group-active:scale-[0.96] group-active:duration-150"
             >
-              Nos créations
-              <span
-                aria-hidden="true"
-                className="transition-transform duration-300 ease-out group-hover:translate-y-0.5"
-              >
-                ↓
+              {/* Inner layer owned by the magnet's counter-parallax
+                  (GSAP x/y only — no CSS transitions here, so nothing
+                  fights). The label leads the pill slightly toward the
+                  cursor: two depths, one object. */}
+              <span data-cta-label className="inline-flex items-center gap-3">
+                Nos créations
+                <span
+                  aria-hidden="true"
+                  className="transition-transform duration-300 ease-out group-hover:translate-y-0.5"
+                >
+                  ↓
+                </span>
               </span>
             </span>
           </a>
+          </div>
           </div>
         </div>
       </div>

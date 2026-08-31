@@ -73,11 +73,14 @@ export default function Navbar() {
   const navigateTo = (href) => {
     const target = document.querySelector(href)
     if (!target) return
-    const jump = () =>
-      window.scrollTo({
-        top: Math.round(target.getBoundingClientRect().top + window.scrollY),
-        behavior: 'instant',
-      })
+    const jump = () => {
+      const top = Math.round(target.getBoundingClientRect().top + window.scrollY)
+      // Through Lenis when it owns the scroll (desktop): jumping around it
+      // leaves its internal target stale and the next wheel tick would
+      // lerp back toward the old position.
+      if (window.__lenis) window.__lenis.scrollTo(top, { immediate: true })
+      else window.scrollTo({ top, behavior: 'instant' })
+    }
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !veilRef.current) {
       jump()
       return

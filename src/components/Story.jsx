@@ -386,8 +386,14 @@ export default function Story() {
               NOT Hero's MOBILE_NO_PIN, which is the wider narrow||coarse||
               no-hover pin test. Two disagreeing definitions of "mobile" in
               one file is how this kind of thing rots.)
+
+              Fine pointers: 0.8, matched to the hero's silk setting — the
+              big background plate is a 24fps scrubbed video, and instant
+              tracking hands each discrete wheel step to the decoder as a
+              visible frame-jump. 0.8 spreads the steps into a liquid
+              glide. Coarse keeps its settled 0.5.
             */
-            scrub: COARSE ? 0.5 : 0.1,
+            scrub: COARSE ? 0.5 : 0.8,
             invalidateOnRefresh: true,
           },
         })

@@ -30,12 +30,28 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* NO scroll-behavior:smooth any more: every programmatic jump on this
+     site goes through the nav veil (instant, covered), and on desktop
+     Lenis now owns the smoothing — CSS smooth on top of either is
+     double interpolation, one of the classic sources of "rubbery" jank. */
   /* The ground behind everything. Safari derives the tint of its collapsing
      bottom chrome from the page background — without this it falls back to
      default grey/white and a dead band appears under the content (seen on a
      real iPhone). Pure paint: no effect on layout, heroH or the pinned DOM. */
   background-color: var(--color-cream);
+}
+
+/* Lenis (desktop smooth scroll) — the library's recommended companion
+   rules; inert on phones where Lenis is never created. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
 }
 
 /* No overscroll/touch constraints: native rubber-banding and momentum stay

@@ -333,7 +333,11 @@ export default function Preloader() {
       <div
         ref={logoRef}
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[1002] w-full opacity-0 [mix-blend-mode:difference]"
+        // will-change + translateZ: during the césure the difference blend
+        // re-derives this text against two moving panels every frame; its
+        // own composited layer keeps the glyphs rasterised once (no
+        // sub-pixel re-render shimmer — the "trembling" during opening).
+        className="pointer-events-none fixed left-0 top-0 z-[1002] w-full opacity-0 will-change-transform [mix-blend-mode:difference] [transform:translateZ(0)]"
       >
         <div className="text-center font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] text-white md:text-[9.5vw] lg:text-[9vw]">
           <span className="type-studio mb-3 block text-[0.24em] tracking-[0.52em] md:mb-4 [&>span:last-child]:-mr-[0.52em]">
