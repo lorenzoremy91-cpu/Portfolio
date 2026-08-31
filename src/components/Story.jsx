@@ -258,7 +258,7 @@ export default function Story() {
             muted
             playsInline
             preload="metadata"
-            className="absolute bottom-0 left-[-8vw] w-[220vw] max-w-none [mask-image:linear-gradient(to_top,black_72%,transparent_100%)] md:w-[160vw] lg:static lg:h-full lg:w-full lg:object-cover lg:object-center lg:[mask-image:none]"
+            className="absolute bottom-0 left-[-20vw] w-[185vw] max-w-none [mask-image:linear-gradient(to_top,black_72%,transparent_100%)] md:left-[-8vw] md:w-[160vw] lg:static lg:h-full lg:w-full lg:object-cover lg:object-center lg:[mask-image:none]"
           />
           <div className="absolute inset-0 bg-cream/20" />
         </div>
@@ -285,7 +285,14 @@ export default function Story() {
             him while his surroundings stay transparent. No card, no fill,
             no border. */}
         <div className="relative z-10 md:col-span-4">
-          <div className="md:mt-24">
+          {/* Phones only: the background plate was narrowed and pushed left
+              (185vw/-20vw) to open up the petal-flight corridor, which moved
+              the daisy's golden disc from 46.1vw to 25.5vw. The avatar is
+              composed to stand ON that disc, so he travels the same -20.6vw
+              — figure and name plate together — and the relationship is
+              preserved at every phone width because both are in vw.
+              max-md: keeps tablet and desktop literally untouched. */}
+          <div className="max-md:relative max-md:left-[-20.6vw] md:mt-24">
             <figure
               data-media
               className="mx-auto aspect-[3/4] w-56 border-0 bg-transparent md:w-full md:max-w-xs"

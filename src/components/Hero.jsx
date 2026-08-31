@@ -499,11 +499,17 @@ export default function Hero() {
           />
           {/* MOBILE + TABLET FRAMING — must stay IDENTICAL to the Story
               section's video classes, or the curtain weld loses pixel
-              registration: bottom-anchored, 220vw wide on phones and 160vw
-              on tablets (whole flower head + petals visible at lower-left),
-              top edge dissolving upward so departing petals fade into the
-              sky instead of hard-cutting. lg+ is the untouched desktop
-              cover. */}
+              registration: bottom-anchored, 185vw wide on phones and 160vw
+              on tablets, top edge dissolving upward so departing petals fade
+              into the sky instead of hard-cutting. lg+ is the untouched
+              desktop cover.
+
+              Phone framing is measured, not eyeballed. In frame 0 the yellow
+              disc sits at 24.6% of the video width and the flower head spans
+              11.5%–44.5%. At 185vw/-20vw that puts the head between 1.3vw and
+              62vw: it still hugs the lower-left corner, but the right ~38vw
+              stays clear so the petal flight reads against the darker
+              backdrop. Widening or shifting right eats that corridor. */}
           {/* poster = frame 0 as an instant JPEG: on slow mobile networks
               the daisy is visible before a single video byte arrives. */}
           <video
@@ -513,7 +519,7 @@ export default function Hero() {
             muted
             playsInline
             preload="auto"
-            className="absolute bottom-0 left-[-8vw] w-[220vw] max-w-none [mask-image:linear-gradient(to_top,black_72%,transparent_100%)] md:w-[160vw] lg:static lg:h-full lg:w-full lg:object-cover lg:object-center lg:[mask-image:none]"
+            className="absolute bottom-0 left-[-20vw] w-[185vw] max-w-none [mask-image:linear-gradient(to_top,black_72%,transparent_100%)] md:left-[-8vw] md:w-[160vw] lg:static lg:h-full lg:w-full lg:object-cover lg:object-center lg:[mask-image:none]"
           />
           <div className="absolute inset-0 bg-cream/20" />
           {/* Warm sunlight glows (daisy-gold, very low opacity) + filmic
