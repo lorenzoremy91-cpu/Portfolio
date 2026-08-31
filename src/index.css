@@ -13,10 +13,16 @@
      interactive cues, highlights and small details. */
   --color-accent: #d9971e;
 
-  --font-display: "Neue Haas Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Brand serif everywhere display type lives (logo, H1, headings,
+     pillars): Fraunces — variable optical sizing gives razor-thin hairline
+     contrast at display sizes and soft, almost calligraphic terminals at
+     small ones. Luxury with a handmade edge. */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-body: "Neue Haas Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  /* Editorial serif for the CÉSURE display logo */
-  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  /* The technical counterpoint: Archivo stretched to its extended width
+     (see .type-studio) for the STUDIO eyebrow and future data/label UI. */
+  --font-tech: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   --tracking-hero: -0.03em;
 
@@ -25,6 +31,11 @@
 
 html {
   scroll-behavior: smooth;
+  /* The ground behind everything. Safari derives the tint of its collapsing
+     bottom chrome from the page background — without this it falls back to
+     default grey/white and a dead band appears under the content (seen on a
+     real iPhone). Pure paint: no effect on layout, heroH or the pinned DOM. */
+  background-color: var(--color-cream);
 }
 
 /* No overscroll/touch constraints: native rubber-banding and momentum stay
@@ -36,6 +47,15 @@ body {
 ::selection {
   background: var(--color-accent);
   color: var(--color-ink);
+}
+
+/* STUDIO eyebrow — Archivo pushed to its full extended width. font-stretch
+   maps onto the variable wdth axis (62..125 loaded), so this is true
+   extended drawing, not scaling. */
+.type-studio {
+  font-family: var(--font-tech);
+  font-stretch: 125%;
+  font-weight: 500;
 }
 
 /* Keyboard accessibility: a clear, on-brand focus ring everywhere. */

@@ -38,13 +38,16 @@ export default function Navbar() {
         shown = want
         gsap.to(logo, {
           autoAlpha: want ? 1 : 0,
-          duration: want ? 0.5 : 0.3,
-          ease: 'power2.out',
+          // A touch of vertical settle so the wordmark arrives, rather
+          // than merely appearing.
+          y: want ? 0 : -6,
+          duration: want ? 0.55 : 0.3,
+          ease: 'power3.out',
           overwrite: 'auto',
         })
       }
     }
-    gsap.set(logo, { autoAlpha: 0 })
+    gsap.set(logo, { autoAlpha: 0, y: -6 })
     sync() // a mid-page reload starts with the logo already visible
     window.addEventListener('scroll', sync, { passive: true })
     return () => window.removeEventListener('scroll', sync)
@@ -93,7 +96,7 @@ export default function Navbar() {
         .from(overlayRef.current, {
           autoAlpha: 0,
           duration: 0.35,
-          ease: 'power2.out',
+          ease: 'power3.out',
         })
         .from(
           '[data-menu-link]',
@@ -163,10 +166,14 @@ export default function Navbar() {
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[90] hidden border-t-2 border-accent bg-cream will-change-transform"
       />
-      {/* On small screens the fixed bar gets a translucent blur backdrop so
-          scrolled content never collides visually with the menu; md+ keeps
-          the fully transparent desktop bar. */}
-      <nav className="flex h-full items-center justify-between px-6 max-md:bg-cream/75 max-md:backdrop-blur-md md:px-10">
+      {/* On small screens the bar is a light glass: barely-there cream
+          tint, gentle blur with a saturation lift, and a hairline bottom
+          rule at 6% ink — it reads as part of the page, not a strip laid
+          over it. md+ keeps the fully transparent desktop bar. NOTE: the
+          backdrop-filter must stay on this <nav>, never on the <header> —
+          the header contains the viewport-fixed veil, and a filtered
+          ancestor would demote it to absolute. */}
+      <nav className="flex h-full items-center justify-between px-6 max-md:border-b max-md:border-ink/[0.06] max-md:bg-cream/30 max-md:backdrop-blur-lg max-md:backdrop-saturate-150 md:px-10">
         <a ref={logoRef} href="/" className="font-display text-lg font-medium tracking-tight">
           Césure<span className="text-accent">.</span>
         </a>
@@ -180,7 +187,7 @@ export default function Navbar() {
                   e.preventDefault()
                   navigateTo(href)
                 }}
-                className="relative py-1 transition-colors duration-300 hover:text-accent after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-0 after:bg-accent after:transition-[width] after:duration-300 hover:after:w-full"
+                className="relative py-1 transition-colors duration-300 hover:text-accent after:absolute after:-bottom-0.5 after:left-0 after:h-px after:w-0 after:bg-accent after:transition-[width] after:duration-500 after:ease-[cubic-bezier(0.22,1,0.36,1)] hover:after:w-full"
               >
                 {label}
               </a>
@@ -193,7 +200,7 @@ export default function Navbar() {
           onClick={() => setOpen(true)}
           aria-expanded={open}
           aria-controls="mobile-menu"
-          className="text-sm uppercase tracking-widest transition-colors hover:text-accent md:hidden"
+          className="text-sm uppercase tracking-widest transition-[color,transform] duration-300 ease-out hover:text-accent active:scale-95 md:hidden"
         >
           Menu
         </button>
@@ -212,7 +219,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => closeMenu()}
-              className="text-sm uppercase tracking-widest transition-colors hover:text-accent"
+              className="text-sm uppercase tracking-widest transition-[color,transform] duration-300 ease-out hover:text-accent active:scale-95"
             >
               Fermer
             </button>
@@ -230,7 +237,7 @@ export default function Navbar() {
                 <span className="text-xs text-accent">
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className="font-serif text-4xl font-semibold leading-none tracking-[-0.01em] transition-colors group-hover:text-accent">
+                <span className="font-serif text-4xl font-semibold leading-none tracking-[-0.01em] transition-[color,transform] duration-300 ease-out group-hover:text-accent group-active:translate-x-1.5 group-active:text-accent">
                   {label}
                 </span>
               </a>

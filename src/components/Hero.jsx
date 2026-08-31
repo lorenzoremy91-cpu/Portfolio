@@ -145,6 +145,7 @@ export default function Hero() {
   const curtainRef = useRef(null)
   const layerRef = useRef(null)
   const spacerRef = useRef(null)
+  const ctaRef = useRef(null)
   const trailState = useRef({ lastX: null, lastY: null, idx: 0, z: 10 })
 
   useGSAP(
@@ -166,6 +167,33 @@ export default function Hero() {
         fully hidden. They only ever appear through spawnCard below.
       */
       gsap.set('[data-trail]', { xPercent: -50, yPercent: -50, opacity: 0, scale: 0 })
+
+      /*
+        Magnetic CTA — fine pointers only. quickTo gives a per-tick eased
+        chase (power3.out) toward the cursor while it is over the button;
+        on leave the pill springs home on an elastic, which is what sells
+        the "physical object" feel. The pull factors are asymmetric (y pulls
+        harder than x) because the pill is wide: equal factors feel inert
+        horizontally. CSS scale lives on the INNER span, so nothing here
+        fights a transition (see the CTA markup).
+      */
+      let magnetMove = null
+      let magnetLeave = null
+      if (FINE_POINTER_MQ.matches && !REDUCED_MQ.matches && ctaRef.current) {
+        const btn = ctaRef.current
+        const xTo = gsap.quickTo(btn, 'x', { duration: 0.45, ease: 'power3.out' })
+        const yTo = gsap.quickTo(btn, 'y', { duration: 0.45, ease: 'power3.out' })
+        magnetMove = (e) => {
+          const r = btn.getBoundingClientRect()
+          xTo((e.clientX - (r.left + r.width / 2)) * 0.3)
+          yTo((e.clientY - (r.top + r.height / 2)) * 0.42)
+        }
+        magnetLeave = () => {
+          gsap.to(btn, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.42)' })
+        }
+        btn.addEventListener('mousemove', magnetMove)
+        btn.addEventListener('mouseleave', magnetLeave)
+      }
 
       /*
         Scroll-scrubbed background playback (petal flight): proxy tween so
@@ -407,6 +435,10 @@ export default function Hero() {
         if (primeOnGesture) {
           window.removeEventListener('touchstart', primeOnGesture)
           window.removeEventListener('pointerdown', primeOnGesture)
+        }
+        if (magnetMove && ctaRef.current) {
+          ctaRef.current.removeEventListener('mousemove', magnetMove)
+          ctaRef.current.removeEventListener('mouseleave', magnetLeave)
         }
         gsap.killTweensOf(gsap.utils.toArray('[data-trail]', scope.current || undefined))
       }
@@ -656,10 +688,13 @@ export default function Hero() {
           aria-label={TITLE}
           className="font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] md:text-[9.5vw] lg:text-[9vw]"
         >
-          {/* Eyebrow line — 0.3em of the display size, airy tracking. The
-              trailing tracking of the last letter is cancelled so the wide
+          {/* Eyebrow line — extended Archivo (.type-studio) against the
+              Fraunces display below: the tech layer over the artisanal one.
+              Slightly smaller than before, wider tracked, and given real
+              air (mb) so it never crowds the É's accent. The trailing
+              tracking of the last letter is cancelled so the wide
               letter-spacing doesn't push the line off optical center. */}
-          <span className="block overflow-hidden text-[0.3em] tracking-[0.42em] [&>span:last-child]:-mr-[0.42em]">
+          <span className="type-studio mb-3 block overflow-hidden text-[0.24em] tracking-[0.52em] text-ink/85 md:mb-4 [&>span:last-child]:-mr-[0.52em]">
             {TITLE_LINES[0].split('').map((letter, i) => (
               <span
                 key={i}
@@ -691,19 +726,28 @@ export default function Hero() {
         >
           Le silence qui fait exister le mouvement.
         </p>
+        {/*
+          Physical CTA. Two layers on purpose: GSAP owns the OUTER <a>'s
+          transform (the magnetic pull — quickTo x/y), CSS owns the INNER
+          pill's transform (hover scale, active press). Splitting them means
+          the CSS transition never fights GSAP's per-tick transform writes —
+          on one element the two would double-smooth into mush.
+        */}
         <div data-cta className="mt-8">
-          <a
-            href="#work"
-            // min-h-11 = 44px: the minimum comfortable tap target on phones
-            // (the pill measured 40px before, just under the threshold).
-            className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink transition-all duration-300 hover:bg-ink hover:text-cream"
-          >
-            Nos créations
+          <a ref={ctaRef} href="#work" className="group inline-block will-change-transform">
             <span
-              aria-hidden="true"
-              className="transition-transform duration-300 group-hover:translate-y-0.5"
+              // min-h-11 = 44px: the minimum comfortable tap target on
+              // phones (the pill measured 40px before, just under the
+              // threshold).
+              className="inline-flex min-h-11 items-center gap-3 rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_28px_-14px_rgba(16,16,16,0.4)] transition-[transform,background-color,color,box-shadow] duration-300 ease-out group-hover:scale-[1.04] group-hover:bg-ink group-hover:text-cream group-hover:shadow-[0_20px_40px_-16px_rgba(16,16,16,0.55)] group-active:scale-[0.96] group-active:duration-150"
             >
-              ↓
+              Nos créations
+              <span
+                aria-hidden="true"
+                className="transition-transform duration-300 ease-out group-hover:translate-y-0.5"
+              >
+                ↓
+              </span>
             </span>
           </a>
         </div>

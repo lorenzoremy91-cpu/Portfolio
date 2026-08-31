@@ -621,7 +621,7 @@ export default function Story() {
           <ul className="mt-6 divide-y divide-ink/10 border-y border-ink/10">
             {PILLARS.map((pillar, i) => (
               <li key={pillar.label} data-story className="group py-6">
-                <h3 className="font-display text-xl font-medium tracking-tight transition-colors group-hover:text-accent md:text-2xl">
+                <h3 className="font-display text-xl font-medium tracking-tight transition-[color,transform] duration-300 ease-out group-hover:text-accent md:text-2xl md:group-hover:translate-x-1.5">
                   <span className="mr-3 align-middle text-xs text-accent">
                     {String(i + 1).padStart(2, '0')}
                   </span>
