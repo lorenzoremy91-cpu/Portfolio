@@ -34,6 +34,15 @@ export default function DebugPanel() {
           const v = document.querySelector('[data-zone="bg-video"] video')
           return v ? `${v.currentTime.toFixed(2)}s / ${(v.duration || 0).toFixed(2)}s` : '—'
         })(),
+        // The iOS tell: an unprimed video paints nothing once seeked.
+        primed: (() => {
+          const v = document.querySelector('[data-zone="bg-video"] video')
+          return v ? v.dataset.primed === '1' : false
+        })(),
+        ready: (() => {
+          const v = document.querySelector('[data-zone="bg-video"] video')
+          return v ? v.readyState : '—'
+        })(),
       })
     }
     read()
@@ -68,6 +77,10 @@ export default function DebugPanel() {
         pins {info.pins} · pinSpacers {info.pinSpacers} {bad ? '⚠ PIN ACTIF' : '✓ sans pin'}
       </div>
       <div>heroH {info.heroH} · vidéo {info.video}</div>
+      <div style={{ color: info.primed ? '#9fe08f' : '#ff8a6a' }}>
+        primed {String(info.primed)} · readyState {info.ready}{' '}
+        {info.primed ? '✓' : '⚠ iOS peindra du vide'}
+      </div>
     </div>
   )
 }

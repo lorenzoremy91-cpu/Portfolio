@@ -42,6 +42,36 @@ ScrollTrigger.defaults({ pinType: 'transform' })
   enough to take the no-pin path:
     • narrow layout, • coarse pointer (finger), • no hover capability.
 */
+/*
+  ── THE iOS ROOT CAUSE ───────────────────────────────────────────────────
+  On iOS Safari a <video> that has NEVER been played does not paint frames
+  obtained by seeking. It shows its poster, and the moment you set
+  currentTime the poster is dismissed — leaving the element blank. A
+  scroll-scrubbed video therefore goes empty on the very first scroll
+  (confirmed on a real iPhone: the hero showed the poster at 0.00s, then
+  bare backdrop colour at 0.06s while the scrub itself kept working).
+
+  The cure is to "prime" the element: play it for an instant, then pause.
+  After that Safari renders seeked frames normally. muted + playsInline
+  normally allows this without a gesture; in Low Power Mode autoplay is
+  refused, so we also prime on the first touch, which is a user gesture.
+  Desktop browsers do not need this, but priming is harmless there.
+*/
+export function primeVideo(v) {
+  if (!v || v.dataset.primed === '1') return
+  const resume = () => {
+    v.pause()
+    v.dataset.primed = '1'
+  }
+  try {
+    const p = v.play()
+    if (p && typeof p.then === 'function') p.then(resume).catch(() => {})
+    else resume()
+  } catch {
+    /* ignore — the touch handler will try again */
+  }
+}
+
 const NARROW_MQ = window.matchMedia('(max-width: 767px)')
 const COARSE_MQ = window.matchMedia('(pointer: coarse)')
 const NO_HOVER_MQ = window.matchMedia('(hover: none)')
@@ -199,12 +229,22 @@ export default function Hero() {
         // Property assignments (not addEventListener) stay idempotent across
         // StrictMode re-runs.
         bgVideoRef.current.onloadedmetadata = applySeek
-        // Decoder prewarm: the very first seek on mobile initializes the
-        // decode pipeline and can hitch right as the user starts scrolling —
-        // a micro-seek at load absorbs that cost while the poster covers it.
+        /*
+          Prime for iOS (see primeVideo above) then micro-seek to warm the
+          decoder. Priming also happens on the first touch/pointer gesture,
+          which is what unblocks Low Power Mode.
+        */
         bgVideoRef.current.onloadeddata = (e) => {
+          primeVideo(e.target)
           if (e.target.currentTime === 0) e.target.currentTime = 0.001
         }
+        primeVideo(bgVideoRef.current)
+        const primeOnGesture = () => {
+          primeVideo(bgVideoRef.current)
+          applySeek()
+        }
+        window.addEventListener('touchstart', primeOnGesture, { once: true, passive: true })
+        window.addEventListener('pointerdown', primeOnGesture, { once: true, passive: true })
         if (bgVideoRef.current.readyState >= 1) applySeek()
         bgVideoRef.current.onseeked = (e) => {
           if (pendingSeek !== null) {

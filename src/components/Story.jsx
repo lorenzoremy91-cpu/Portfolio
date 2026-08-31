@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { primeVideo } from './Hero.jsx'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -155,8 +156,26 @@ export default function Story() {
 
       // Property assignments (not addEventListener) stay idempotent across
       // StrictMode re-runs.
+      /*
+        iOS: a never-played <video> paints nothing once you seek it (see
+        primeVideo in Hero.jsx). Both Studio videos are scrub-driven, so both
+        must be primed — at load and on the first user gesture.
+      */
+      const primeAll = () => {
+        primeVideo(bgVideoRef.current)
+        primeVideo(avatarRef.current)
+        applyBgSeek()
+        applyAvSeek()
+        renderAvatarFrame()
+      }
+      primeVideo(bgVideoRef.current)
+      primeVideo(avatarRef.current)
+      window.addEventListener('touchstart', primeAll, { once: true, passive: true })
+      window.addEventListener('pointerdown', primeAll, { once: true, passive: true })
+
       if (bgVideoRef.current) {
         bgVideoRef.current.onloadedmetadata = applyBgSeek
+        bgVideoRef.current.onloadeddata = () => primeVideo(bgVideoRef.current)
         if (bgVideoRef.current.readyState >= 1) applyBgSeek()
         bgVideoRef.current.onseeked = (e) => {
           if (bgPendingSeek !== null) {
@@ -168,7 +187,10 @@ export default function Story() {
       }
       if (avatarRef.current) {
         avatarRef.current.onloadedmetadata = applyAvSeek
-        avatarRef.current.onloadeddata = renderAvatarFrame
+        avatarRef.current.onloadeddata = (e) => {
+          primeVideo(e.target)
+          renderAvatarFrame()
+        }
         if (avatarRef.current.readyState >= 1) applyAvSeek()
         if (avatarRef.current.readyState >= 2) renderAvatarFrame()
         avatarRef.current.onseeked = (e) => {
