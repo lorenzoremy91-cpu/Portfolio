@@ -8,21 +8,25 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 
 const AVATAR_VIDEO = '/videos/figurinet-cartoon.mp4'
 
+/*
+  The three USPs — one line each, scannable in two seconds. The card layout
+  they feed (see the grid in the JSX) does the selling; these stay short on
+  purpose.
+*/
 const PILLARS = [
   {
-    label: 'Design & Direction Artistique',
-    detail:
-      "Des interfaces modernes, claires et pensées pour la conversion. Nous retirons le superflu pour concevoir des parcours utilisateurs intuitifs, où votre identité visuelle capte immédiatement l'attention.",
+    label: 'Design sur-mesure',
+    detail: 'Des interfaces épurées, pensées pour captiver et convertir.',
   },
   {
-    label: 'Motion Design & 3D',
+    label: 'Impact visuel (3D & Motion)',
     detail:
-      "Le mouvement au service de l'impact. Nous intégrons des animations et des éléments 3D pour donner de la profondeur à votre site, dynamiser l'expérience utilisateur, sans jamais sacrifier la vitesse de chargement.",
+      'Des animations fluides qui marquent les esprits sans ralentir le site.',
   },
   {
-    label: 'Développement Web',
+    label: 'Performance technique',
     detail:
-      "L'exigence technique avant tout. Nous développons des sites rapides, sécurisés et optimisés. Du code propre, des livraisons rapides et une communication transparente de la maquette jusqu'à la mise en ligne.",
+      'Un code robuste, des temps de chargement optimisés et un référencement naturel solide.',
   },
 ]
 
@@ -49,6 +53,23 @@ export default function Story() {
               start: 'top 85%',
             },
           })
+        })
+        /*
+          The USP cards get their own reveal: one trigger on the grid, a
+          left-to-right stagger — on desktop the three cards sit at the same
+          scroll position, so per-block triggers would fire them as one
+          undifferentiated slab. Under reduced motion they simply render.
+        */
+        gsap.from('[data-usp]', {
+          y: 40,
+          autoAlpha: 0,
+          duration: 0.8,
+          ease: 'power4.out',
+          stagger: 0.12,
+          scrollTrigger: {
+            trigger: '[data-usp-grid]',
+            start: 'top 85%',
+          },
         })
       }
 
@@ -585,51 +606,81 @@ export default function Story() {
 
           <div className="mt-10 max-w-xl space-y-6 text-base leading-relaxed text-ink/80 md:text-lg">
             <p data-story>
-              Sur Internet, le trop-plein d'informations tue le message.
-              L'attention des utilisateurs est devenue rare. La
-              «&nbsp;Césure&nbsp;», c'est ce temps d'arrêt, cette respiration
-              visuelle qui permet à votre marque de se démarquer et d'être
-              comprise instantanément.
+              L'attention de vos clients est précieuse. La
+              «&nbsp;Césure&nbsp;», c'est cette respiration visuelle qui
+              permet à votre marque d'être comprise instantanément dans un
+              paysage numérique saturé.
             </p>
             <p data-story>
-              Le Studio Césure, dirigé par Lorenzo Remy, est né d'une
-              conviction simple&nbsp;: un design performant ne consiste pas à
-              surcharger l'écran, mais à faire des choix justes. Nous
-              concevons des sites web et des expériences interactives avec une
-              approche directe et sans détours. Pas de bla-bla ni de concepts
-              abstraits&nbsp;: nous mettons notre maîtrise technique (3D,
-              motion design, développement front-end) au service de vos
-              objectifs.
+              Le Studio Césure (dirigé par Lorenzo Remy) ne fait pas dans les
+              concepts abstraits. Nous allions direction artistique haut de
+              gamme et rigueur technique pour un résultat direct&nbsp;: des
+              sites rapides, élégants, et conçus pour générer de la
+              croissance.
             </p>
-            <p data-story>
-              Notre promesse est concrète&nbsp;: livrer des interfaces
-              élégantes, des animations fluides et un code robuste, le tout
-              avec une vraie rigueur sur le respect des délais.
+            {/* The commitment line — the closer. Set in the brand serif at
+                full ink so it lands as a promise, not another paragraph. */}
+            <p data-story className="font-display text-lg font-medium text-ink md:text-xl">
+              Un budget maîtrisé, des délais respectés, et une communication
+              transparente.
             </p>
           </div>
 
-          {/* Full-sentence expertise entries: title row, then the pitch in
-              sentence case underneath — the old uppercase keyword column
-              could not carry three-line descriptions. */}
+          {/*
+            The three USPs as a scannable card grid — the information design
+            is the argument here. Each card: an oversized ghost numeral in
+            the brand serif (the eye-catcher, at 8% accent so it stays
+            quiet), the gold index, a short title, a one-line pitch, and an
+            accent baseline that draws itself on hover. Light glass over the
+            fixed daisy plate, echoing the header. Desktop hover: a gentle
+            lift + border warm-up, on the same premium curve as the rest of
+            the UI. One column on phones, three across on md+ so all three
+            strengths land in a single glance.
+
+            data-usp (not data-story): side-by-side cards sharing one
+            trigger position would fire the generic per-block reveal
+            simultaneously — these get their own staggered reveal on the
+            grid (see the useGSAP block).
+          */}
           <p
             data-story
             className="mt-16 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/60"
           >
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
-            L'expertise
+            L'expertise &amp; les engagements
           </p>
-          <ul className="mt-6 divide-y divide-ink/10 border-y border-ink/10">
+          <ul data-usp-grid className="mt-6 grid gap-4 md:grid-cols-3 md:gap-5">
             {PILLARS.map((pillar, i) => (
-              <li key={pillar.label} data-story className="group py-6">
-                <h3 className="font-display text-xl font-medium tracking-tight transition-[color,transform] duration-300 ease-out group-hover:text-accent md:text-2xl md:group-hover:translate-x-1.5">
-                  <span className="mr-3 align-middle text-xs text-accent">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
+              <li
+                key={pillar.label}
+                data-usp
+                // transition-[translate,...] and NOT transform: Tailwind v4
+                // compiles -translate-y-* to the standalone `translate`
+                // property, and `transform` itself belongs to the GSAP
+                // reveal — transitioning it would re-smooth every tween
+                // tick into mush (the exact CSS-vs-GSAP conflict the CTA
+                // comment warns about).
+                className="group relative overflow-hidden rounded-2xl border border-ink/[0.08] bg-cream/60 p-7 backdrop-blur-sm transition-[translate,box-shadow,border-color] duration-500 ease-out md:hover:-translate-y-1.5 md:hover:border-accent/40 md:hover:shadow-[0_24px_48px_-24px_rgba(16,16,16,0.28)]"
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-3 -top-7 select-none font-serif text-[6.5rem] font-semibold leading-none text-accent/[0.08] transition-colors duration-500 group-hover:text-accent/[0.16]"
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="text-xs font-medium uppercase tracking-widest text-accent">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <h3 className="font-display mt-4 text-xl font-medium tracking-tight md:text-[1.35rem]">
                   {pillar.label}
                 </h3>
-                <p className="mt-3 max-w-xl pl-0 text-sm leading-relaxed text-ink/70 md:pl-8 md:text-base">
+                <p className="mt-3 text-sm leading-relaxed text-ink/70">
                   {pillar.detail}
                 </p>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-accent/70 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-x-100"
+                />
               </li>
             ))}
           </ul>

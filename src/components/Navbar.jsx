@@ -32,8 +32,19 @@ export default function Navbar() {
     const logo = logoRef.current
     if (!logo) return undefined
     let shown = false
+    /*
+      The wordmark takes over exactly when the H1 lockup has left the
+      screen — the two never coexist and the brand never disappears. The
+      threshold is the H1's document-space bottom, captured once (same
+      frozen-geometry philosophy as heroH: Safari's bar moving must not
+      re-time the fade). Fallback if the H1 isn't there for any reason.
+    */
+    const h1 = document.querySelector('h1')
+    const threshold = h1
+      ? h1.getBoundingClientRect().bottom + window.scrollY
+      : 160
     const sync = () => {
-      const want = window.scrollY > 60
+      const want = window.scrollY > threshold
       if (want !== shown) {
         shown = want
         gsap.to(logo, {
