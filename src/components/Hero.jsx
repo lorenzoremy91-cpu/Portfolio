@@ -146,9 +146,14 @@ export default function Hero() {
                 scrub 0.15 (not 0.5): half a second of catch-up smoothing
                 reads as a dead zone under the thumb.
               */
-              trigger: scope.current,
-              start: 'top top',
-              end: 'bottom top',
+              /*
+                Absolute scroll positions, NO trigger element: nothing is
+                measured against a box whose height Safari can change. The
+                flight runs from the first scrolled pixel to one captured
+                screen-height later, full stop.
+              */
+              start: () => 0,
+              end: () => viewportH,
               scrub: 0.15,
               invalidateOnRefresh: true,
             }
@@ -197,7 +202,16 @@ export default function Hero() {
         // authority makes raw section overlap geometrically impossible.
         // Without a pin, the hero's scroll footprint is just its own height,
         // so the mobile curtain track is 1× viewportH instead of 2×.
-        if (curtainRef.current) {
+        /*
+          PHONES: the background layer is a plain `position: fixed` element
+          with NO height of our own (see JSX). Safari itself keeps a fixed
+          element matched to the visual viewport as the address bar comes and
+          goes — no JS height, no CSS viewport unit, nothing for a resize to
+          collapse. Later sections are opaque and come after it in the DOM, so
+          they cover it as they arrive; that is the whole "curtain".
+          Only the flow heights below need locking.
+        */
+        if (!MOBILE_NO_PIN && curtainRef.current) {
           /*
             Two screens on BOTH platforms now. Desktop: the section + the
             pinned hold. Phones: the section + the spacer below it — and the
@@ -231,7 +245,9 @@ export default function Hero() {
           both. Desktop clears the inline height (the fixed layer uses inset-0).
         */
         if (layerRef.current) {
-          layerRef.current.style.height = MOBILE_NO_PIN ? `${viewportH}px` : ''
+          // Phones: no explicit height at all — the fixed parent is sized by
+          // the browser. Desktop: inset-0 on the fixed layer does the work.
+          layerRef.current.style.height = ''
         }
       }
       sizeCurtain()
@@ -243,6 +259,16 @@ export default function Hero() {
         forced a second refresh. refreshInit runs before measuring.
       */
       ScrollTrigger.addEventListener('refreshInit', sizeCurtain)
+
+      /*
+        Re-assert ignoreMobileResize HERE as well as at module load. GSAP
+        stores it as `ScrollTrigger.isTouch === 1 && value` (ScrollTrigger.js
+        ~line 2175) — evaluated at call time. At module load, before the
+        plugin has run its touch detection, isTouch can still be undefined,
+        which silently turns the flag OFF. By this point the plugin is
+        initialised, so the setting sticks.
+      */
+      ScrollTrigger.config({ ignoreMobileResize: true })
 
       // Cleanup (runs on context revert): kill any in-flight spawn tweens.
       // Spawn timelines are deliberately created OUTSIDE this context (plain
@@ -354,18 +380,19 @@ export default function Hero() {
       <div
         aria-hidden="true"
         ref={curtainRef}
-        className="absolute left-0 top-0 w-full"
+        className={
+          MOBILE_NO_PIN
+            ? 'fixed inset-0 overflow-hidden'
+            : 'absolute left-0 top-0 w-full'
+        }
         data-zone="bg-video"
         style={
           MOBILE_NO_PIN
-            ? {
-                height: '200svh',
-                // Wall tone behind the layer: if Safari's bar retracts and
-                // the window grows past our locked height, the strip that
-                // appears shows the plate's own wall colour, never bare cream.
-                backgroundColor: '#cfc9ba',
-              }
-            : { clipPath: 'inset(0)', height: '200svh' }
+            ? // Phones: ZERO viewport units and zero JS height. `fixed
+              // inset-0` is re-laid-out by the browser itself whenever
+              // Safari's bar moves, so it can never collapse or desync.
+              { backgroundColor: '#cfc9ba' }
+            : { clipPath: 'inset(0)', height: `${viewportH * 2}px` }
         }
       >
         {/*
@@ -378,15 +405,11 @@ export default function Hero() {
           an overflow ancestor silently disables sticky.
           Desktop/tablet keep the clipped fixed layer the pin relies on.
         */}
-        {/* h-svh (SMALL viewport height) as the pre-JS fallback only: it is
-            never taller than what the phone actually shows, so the daisy can
-            never start below the fold. sizeCurtain immediately replaces it
-            with the px-locked viewportH. */}
+        {/* Phones: fills the browser-managed fixed parent (inset-0, no
+            height of its own). Desktop: the clipped viewport-fixed layer. */}
         <div
           ref={layerRef}
-          className={
-            MOBILE_NO_PIN ? 'sticky top-0 h-svh w-full overflow-hidden' : 'fixed inset-0'
-          }
+          className={MOBILE_NO_PIN ? 'absolute inset-0 overflow-hidden' : 'fixed inset-0'}
         >
           {/* Mobile-only backdrop: fills the space above the scaled-down
               video with the footage's wall tones, leaving the upper half
@@ -432,7 +455,11 @@ export default function Hero() {
       ref={scope}
       onMouseMove={onHeroMove}
       onMouseLeave={onHeroLeave}
-      className="relative flex min-h-svh flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
+      // ZERO CSS viewport units: the height comes from the JS-captured
+      // innerHeight, in px, from the very first paint (sizeCurtain keeps it
+      // in sync on refreshes). Nothing here can change when Safari's bar moves.
+      style={{ minHeight: `${viewportH}px` }}
+      className="relative flex flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
     >
 
       {/* Layer 0.5 — cursor image trail, under the typography. Cards live at
@@ -488,7 +515,9 @@ export default function Hero() {
         <div data-cta className="mt-8">
           <a
             href="#work"
-            className="group inline-flex items-center gap-3 rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink transition-all duration-300 hover:bg-ink hover:text-cream"
+            // min-h-11 = 44px: the minimum comfortable tap target on phones
+            // (the pill measured 40px before, just under the threshold).
+            className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink transition-all duration-300 hover:bg-ink hover:text-cream"
           >
             Projets
             <span
