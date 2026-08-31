@@ -226,83 +226,52 @@ export default function Hero() {
         exactly as fast as the scroll — the ease:'none' tween to
         viewportH + delta does precisely that, in the same scroll units.
 
-        The center delta is captured ONCE at setup, in SECTION-RELATIVE
-        coordinates — the hard-won lesson of this feature: a live
-        getBoundingClientRect inside the tween's function values re-resolved
-        while the pin had the section translated (+scrollY), poisoning the
-        delta by exactly one scroll offset and launching the button off the
-        top of the screen. Measuring (cta − section) cancels the pin
-        transform, the scroll position AND the paused intro's +20px
-        from-state (subtracted via gsap.getProperty), and freezing it at
-        setup matches the heroH philosophy: nothing Safari or ScrollTrigger
-        does later can re-time it.
+        NO drift toward the geometric center — that was tried and it put
+        the button on top of the tagline: on desktop the whole section is
+        pinned static during the flight, so ANY vertical migration collides
+        with the type above it. The correct physics is anchoring: the
+        button holds the screen position the design gave it (which sits
+        near center already).
+
+          • Desktop: the pin already freezes it on screen — zero motion,
+            zero overlap risk. Only the fade exists.
+          • Phones: the section scrolls up, so holding the anchor means
+            countering the scroll exactly — y = progress × viewportH,
+            ease:none, in the same scroll units as the flight.
+
+        Both fade out over the last fifth of the scene, as page 2 begins,
+        still on their anchor. No measured deltas, nothing to re-resolve on
+        refresh — geometry cannot poison it.
       */
       if (!REDUCED_MQ.matches) {
-        let ctaD0 = 0
-        {
-          const host = scope.current?.querySelector('[data-cta]')
-          if (host && scope.current) {
-            const r = host.getBoundingClientRect()
-            const s = scope.current.getBoundingClientRect()
-            const introY = Number(gsap.getProperty(host, 'y')) || 0
-            ctaD0 =
-              viewportH / 2 - (r.top - s.top - introY + r.height / 2)
-          }
-        }
-        const d0 = () => ctaD0
-        gsap
-          .timeline({
-            scrollTrigger: MOBILE_NO_PIN
-              ? {
-                  start: () => 0,
-                  end: () => viewportH,
-                  scrub: 0.15,
-                  invalidateOnRefresh: true,
-                }
-              : {
-                  trigger: scope.current,
-                  start: 'top top',
-                  end: () => `+=${viewportH}`,
-                  scrub: 0.1,
-                  invalidateOnRefresh: true,
-                },
-          })
-          .to(
+        const floatTl = gsap.timeline({
+          scrollTrigger: MOBILE_NO_PIN
+            ? {
+                start: () => 0,
+                end: () => viewportH,
+                scrub: 0.15,
+                invalidateOnRefresh: true,
+              }
+            : {
+                trigger: scope.current,
+                start: 'top top',
+                end: () => `+=${viewportH}`,
+                scrub: 0.1,
+                invalidateOnRefresh: true,
+              },
+        })
+        if (MOBILE_NO_PIN) {
+          floatTl.to(
             '[data-cta-float]',
-            {
-              y: () => (MOBILE_NO_PIN ? viewportH * 0.35 : 0) + d0(),
-              duration: 0.35,
-              ease: 'power2.out',
-            },
+            { y: () => viewportH, duration: 1, ease: 'none' },
             0,
           )
-          /*
-            The hold segments must climb at EXACTLY the scroll rate on
-            phones — 1 viewportH of y per 1 viewportH of scroll — so each
-            endpoint is (progress × viewportH) + d0, never a flat
-            viewportH + d0 (that slope, 1.44×, sent the button sailing past
-            center). The fade segment keeps the same slope so the button is
-            still centered while it dissolves.
-          */
-          .to(
-            '[data-cta-float]',
-            {
-              y: () => (MOBILE_NO_PIN ? viewportH * 0.8 : 0) + d0(),
-              duration: 0.45,
-              ease: 'none',
-            },
-            0.35,
-          )
-          .to(
-            '[data-cta-float]',
-            {
-              y: () => (MOBILE_NO_PIN ? viewportH : 0) + d0(),
-              autoAlpha: 0,
-              duration: 0.2,
-              ease: 'none',
-            },
-            0.8,
-          )
+        }
+        floatTl.to(
+          '[data-cta-float]',
+          { autoAlpha: 0, duration: 0.2, ease: 'none' },
+          0.8,
+        )
       }
 
       /*

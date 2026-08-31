@@ -86,6 +86,17 @@ export default function Preloader() {
     // ---- scroll lock (geometry-neutral, see notes above) ----
     const prevOverflow = document.documentElement.style.overflow
     document.documentElement.style.overflow = 'hidden'
+    /*
+      iOS rubber-banding during the locked intro drags the fixed layers
+      with it and exposes the <html> ground — which is CREAM (the Safari
+      safe-area fix). That is the "white flash": a flick during the intro
+      showed cream at the edges. The ground goes black for the duration
+      and overscroll glow is disabled; both restored at unlock.
+    */
+    const prevHtmlBg = document.documentElement.style.backgroundColor
+    const prevOverscroll = document.documentElement.style.overscrollBehavior
+    document.documentElement.style.backgroundColor = '#000'
+    document.documentElement.style.overscrollBehavior = 'none'
     const block = (e) => e.preventDefault()
     const blockKeys = (e) => {
       if (SCROLL_KEYS.has(e.key)) e.preventDefault()
@@ -98,10 +109,53 @@ export default function Preloader() {
       if (unlocked) return
       unlocked = true
       document.documentElement.style.overflow = prevOverflow
+      document.documentElement.style.backgroundColor = prevHtmlBg
+      document.documentElement.style.overscrollBehavior = prevOverscroll
       window.removeEventListener('wheel', block)
       window.removeEventListener('touchmove', block)
       window.removeEventListener('keydown', blockKeys)
     }
+
+    /*
+      ZERO-OFFSET RELAY — the white lockup is not "roughly centered", it is
+      laid ON the hero's real <h1>: same top, same left, same width (same
+      classes inside, so the same metrics), measured from the live DOM. And
+      the césure opens THROUGH the text: the two panels split at the H1's
+      vertical center, not at 50vh — so the seam is born in the middle of
+      the words and the reveal grows outward from them. Re-measured when
+      the webfonts finish loading (Fraunces metrics differ from the
+      fallback serif), but never once the opening has begun.
+    */
+    let opening = false
+    const place = () => {
+      if (opening) return
+      const h1 = document.querySelector('main h1')
+      if (!h1 || !logoRef.current) return
+      const r = h1.getBoundingClientRect()
+      const cY = Math.round(r.top + r.height / 2)
+      gsap.set(logoRef.current, {
+        top: r.top,
+        left: r.left,
+        width: r.width,
+        xPercent: 0,
+        yPercent: 0,
+      })
+      /*
+        The panels OVERLAP by 1px on each side of the cut: two boxes that
+        merely touch leave a sub-pixel antialiasing seam — a faint light
+        hairline across the middle of the wordmark, visible on the very
+        first frame. The overlap is black-on-black (invisible) and gone
+        within the opening's first frames.
+      */
+      if (topRef.current) gsap.set(topRef.current, { height: cY + 1 })
+      if (bottomRef.current)
+        gsap.set(bottomRef.current, {
+          top: cY - 1,
+          height: window.innerHeight - cY + 1,
+        })
+    }
+    place()
+    document.fonts?.ready?.then(place)
 
     // React has painted our own black layers — the HTML shield can go.
     removeShield()
@@ -114,14 +168,23 @@ export default function Preloader() {
     */
     const tl = gsap.timeline({ paused: true })
     tl.to(videoWrapRef.current, { autoAlpha: 0, duration: 0.75, ease: 'power2.inOut' }, 0)
+      // The smoke leads, the logo follows: the wordmark only starts once
+      // the dissolve is well under way, surfacing through its last wisps.
       .fromTo(
         logoRef.current,
         { autoAlpha: 0 },
         { autoAlpha: 1, duration: 1.1, ease: 'power3.out' },
-        0.35,
+        0.55,
       )
       // A breath to read the lockup.
       .addLabel('open', '+=0.85')
+      .call(
+        () => {
+          opening = true
+        },
+        null,
+        'open',
+      )
       .to(topRef.current, { yPercent: -100, duration: 1.2, ease: 'power3.inOut' }, 'open')
       .to(bottomRef.current, { yPercent: 100, duration: 1.2, ease: 'power3.inOut' }, 'open')
       // "Une fois l'ouverture terminée, le scroll est débloqué."
@@ -180,7 +243,9 @@ export default function Preloader() {
   return (
     <>
       {/* Phase 3 panels — in place from the first frame so the black is
-          continuous; the seam is invisible until they part. */}
+          continuous; the seam is invisible until they part. The 50/50
+          split is only the pre-measure fallback: place() re-cuts them at
+          the H1's centerline so the opening is born inside the text. */}
       <div
         ref={topRef}
         aria-hidden="true"
@@ -191,8 +256,9 @@ export default function Preloader() {
         aria-hidden="true"
         className="fixed inset-x-0 bottom-0 z-[1001] h-1/2 bg-black will-change-transform"
       />
-      {/* Phase 1 video, above the panels, below the logo. */}
-      <div ref={videoWrapRef} aria-hidden="true" className="fixed inset-0 z-[1001]">
+      {/* Phase 1 video, above the panels, below the logo. Its own black
+          background covers the instants before the first decoded frame. */}
+      <div ref={videoWrapRef} aria-hidden="true" className="fixed inset-0 z-[1001] bg-black">
         <video
           ref={videoRef}
           src="/videos/intro.mp4"
@@ -200,7 +266,7 @@ export default function Preloader() {
           playsInline
           autoPlay
           preload="auto"
-          className="h-full w-full object-cover"
+          className="h-full w-full bg-black object-cover"
         />
       </div>
       {/*
@@ -210,11 +276,18 @@ export default function Preloader() {
         black panels, near-black once the cream page is revealed. The
         chromatic inversion IS the blend mode; no filter gymnastics needed
         on live text.
+
+        NOT flex-centered: place() pins this wrapper to the real H1's
+        measured top/left/width, and the inner block carries the H1's exact
+        classes — same clamp, same tracking, same eyebrow margins — so the
+        two render with identical metrics. When the panels part and this
+        fades, the hero title underneath is at the same pixels: the relay
+        is invisible.
       */}
       <div
         ref={logoRef}
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1002] flex items-center justify-center px-6 opacity-0 [mix-blend-mode:difference]"
+        className="pointer-events-none fixed left-0 top-0 z-[1002] w-full opacity-0 [mix-blend-mode:difference]"
       >
         <div className="text-center font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] text-white md:text-[9.5vw] lg:text-[9vw]">
           <span className="type-studio mb-3 block text-[0.24em] tracking-[0.52em] md:mb-4 [&>span:last-child]:-mr-[0.52em]">

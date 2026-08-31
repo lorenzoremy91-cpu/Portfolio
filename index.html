@@ -8,6 +8,9 @@
     <meta name="theme-color" content="#f4f1ea" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- The intro video must start the moment React mounts — fetch it in
+         parallel with the JS bundle instead of after it. -->
+    <link rel="preload" as="video" href="/videos/intro.mp4" fetchpriority="high" />
     <!--
       Type direction: Fraunces (variable optical axis up to 144pt — hairline
       contrast at display size, soft artisanal terminals) carries the brand
