@@ -208,6 +208,18 @@ export default function Hero() {
         const xTo = gsap.quickTo(btn, 'x', { duration: 0.45, ease: 'power3.out' })
         const yTo = gsap.quickTo(btn, 'y', { duration: 0.45, ease: 'power3.out' })
         magnetMove = (e) => {
+          /*
+            Scroll guard: browsers dispatch SYNTHETIC mousemove events
+            during scrolling under a stationary cursor, so a cursor
+            resting on the button while the user scrolls kept triggering
+            the pull/spring cycle — the "trembling" seen on a real
+            trackpad. The magnet only operates at the top of the page;
+            past that, one clean spring home and it stays inert.
+          */
+          if (window.scrollY > 4) {
+            magnetLeave()
+            return
+          }
           const r = btn.getBoundingClientRect()
           xTo((e.clientX - (r.left + r.width / 2)) * 0.3)
           yTo((e.clientY - (r.top + r.height / 2)) * 0.42)
@@ -234,99 +246,30 @@ export default function Hero() {
         exactly as fast as the scroll — the ease:'none' tween to
         viewportH + delta does precisely that, in the same scroll units.
 
-        THE FINAL SHAPE, third iteration — each ancestor taught a lesson:
-          v1 glided to center but the pinned tagline stayed put → overlap.
-          v2 anchored in place, but the brief demands the true viewport
-             center, and the scrub-lag left a half-faded button visibly
-             riding up with the section at the unpin.
-        So: the TYPOGRAPHY DISSOLVES FIRST. Title and tagline fade over the
-        first 28% of the flight; the button then glides to the exact
-        viewport center (arriving at 35%, after its neighbours are gone —
-        overlap is structurally impossible), holds that center in scroll
-        units on phones / stillness on desktop, and is FULLY faded by 90%
-        of the flight, so even with scrub smoothing nothing remains to
-        ride up when the pin releases.
-
-        The center delta is captured ONCE at setup in SECTION-RELATIVE
-        coordinates (cta − section top), which cancels the pin transform,
-        the scroll position and the paused intro's from-state — the
-        live-measurement version of this was poisoned by exactly one
-        scroll offset when invalidateOnRefresh re-resolved it mid-pin.
+        FINAL, SIMPLIFIED FORM — after three JS-positioning generations
+        each broke differently, the anchoring is now pure CSS (see the
+        [data-cta-float] markup: fixed center on phones, plain flow under
+        the pin on desktop) and GSAP owns exactly ONE property: opacity.
+        A single scrubbed fade over the last fifth of the flight, on an
+        ABSOLUTE scroll range that is identical on both platforms (the
+        desktop pin occupies scroll 0→viewportH exactly like the phone
+        flight does). No deltas, no y, nothing measured, nothing to
+        poison.
       */
       if (!REDUCED_MQ.matches) {
-        let ctaD0 = 0
-        {
-          const host = scope.current?.querySelector('[data-cta]')
-          if (host && scope.current) {
-            const r = host.getBoundingClientRect()
-            const s = scope.current.getBoundingClientRect()
-            const introY = Number(gsap.getProperty(host, 'y')) || 0
-            ctaD0 = viewportH / 2 - (r.top - s.top - introY + r.height / 2)
-          }
-        }
-        const typo = [
-          scope.current?.querySelector('h1'),
-          ...gsap.utils.toArray('[data-tagline]', scope.current || undefined),
-        ].filter(Boolean)
-        const floatTl = gsap.timeline({
-          scrollTrigger: MOBILE_NO_PIN
-            ? {
-                start: () => 0,
-                end: () => viewportH,
-                scrub: 0.15,
-                invalidateOnRefresh: true,
-              }
-            : {
-                trigger: scope.current,
-                start: 'top top',
-                end: () => `+=${viewportH}`,
-                scrub: 0.1,
-                invalidateOnRefresh: true,
-              },
-        })
-        // The stage empties before the button moves in.
-        floatTl.to(
-          typo,
-          { autoAlpha: 0, duration: 0.28, ease: 'power1.in' },
-          0,
-        )
-        // Glide to the exact viewport center…
-        floatTl.to(
+        gsap.fromTo(
           '[data-cta-float]',
+          { autoAlpha: 1 },
           {
-            y: () => (MOBILE_NO_PIN ? viewportH * 0.35 : 0) + ctaD0,
-            duration: 0.35,
-            ease: 'power2.out',
-          },
-          0,
-        )
-        // …hold it (phones climb at exactly the scroll rate; desktop is
-        // pinned, so the same position IS stillness)…
-        floatTl.to(
-          '[data-cta-float]',
-          {
-            y: () => (MOBILE_NO_PIN ? viewportH * 0.9 : 0) + ctaD0,
-            duration: 0.55,
+            autoAlpha: 0,
             ease: 'none',
+            scrollTrigger: {
+              start: () => viewportH * 0.72,
+              end: () => viewportH * 0.92,
+              scrub: true,
+              invalidateOnRefresh: true,
+            },
           },
-          0.35,
-        )
-        // …and be gone well before the seam: fade completes at 90% of the
-        // flight, still on center (the y keeps the scroll slope under the
-        // fade so phones never drift while dissolving).
-        floatTl.to(
-          '[data-cta-float]',
-          { autoAlpha: 0, duration: 0.18, ease: 'power1.in' },
-          0.72,
-        )
-        floatTl.to(
-          '[data-cta-float]',
-          {
-            y: () => (MOBILE_NO_PIN ? viewportH : 0) + ctaD0,
-            duration: 0.1,
-            ease: 'none',
-          },
-          0.9,
         )
       }
 
@@ -870,12 +813,31 @@ export default function Hero() {
           the CSS transition never fights GSAP's per-tick transform writes —
           on one element the two would double-smooth into mush.
         */}
-        {/* Three transform layers, one owner each: [data-cta] belongs to
-            the intro reveal, [data-cta-float] to the scroll-synced float
-            (phase 4), the <a> to the magnetic pull, the inner span to CSS
-            hover/active. Any two sharing an element would fight. */}
-        <div data-cta className="mt-8">
-          <div data-cta-float className="will-change-transform">
+        {/*
+          The button's anchoring is PURE CSS — zero JS positioning:
+
+            • Phones (no pin, section scrolls, no ancestor transform):
+              position:fixed at the viewport's exact center. The browser
+              glues it there natively for the whole flight.
+            • Desktop: normal flow. The section is PINNED during the
+              flight, and a pin freezes every child on screen exactly
+              where the layout put it — re-centering it via JS is what
+              caused two generations of collisions and jitter.
+
+          GSAP touches ONLY this wrapper's opacity (one scrubbed fade at
+          the end of the flight). Nesting order is load-bearing: the
+          float wrapper wraps [data-cta] (not the reverse) because the
+          intro tweens a transform on [data-cta], and a transformed
+          ancestor would demote this wrapper's position:fixed on phones.
+          One owner per element: this wrapper = CSS anchor + GSAP fade;
+          [data-cta] = intro reveal; the <a> = magnetic pull; the inner
+          span = CSS hover/active.
+        */}
+        <div
+          data-cta-float
+          className="max-md:fixed max-md:left-1/2 max-md:top-1/2 max-md:z-20 max-md:-translate-x-1/2 max-md:-translate-y-1/2"
+        >
+          <div data-cta className="mt-8 max-md:mt-0">
           <a ref={ctaRef} href="#work" className="group inline-block will-change-transform">
             <span
               // min-h-11 = 44px: the minimum comfortable tap target on

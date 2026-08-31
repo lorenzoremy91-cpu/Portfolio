@@ -229,15 +229,49 @@ export default function Preloader() {
     } catch {
       /* not seekable yet — it will start at 0 anyway */
     }
+    /*
+      Autoplay refusal is NOT hypothetical on desktop — it reproduced
+      right in the test harness: the video sat paused at t=0 while a later
+      scripted play() succeeded. Three defenses, layered:
+
+      1. muted is asserted IMPERATIVELY before play(). React's `muted`
+         prop famously sets the DOM property without writing the HTML
+         attribute, and some autoplay heuristics evaluate the attribute —
+         an "unmuted" autoplay video is exactly what gets blocked.
+      2. If play() still rejects, retry on the FIRST SIGN OF LIFE — not
+         just pointerdown/keydown: a viewer watching an intro doesn't
+         click, but their hand rests on the trackpad (mousemove/wheel) or
+         the screen (touchstart). Any of them re-arms playback.
+      3. A 3.5s grace window: only if nothing has started playing by then
+         does the sequence move on to the logo. Black never traps.
+    */
+    let graceTimeout = null
+    const retryPlay = () => {
+      video.play().catch(() => {})
+    }
+    const RETRY_EVENTS = ['pointerdown', 'keydown', 'mousemove', 'wheel', 'touchstart']
+    video.defaultMuted = true
+    video.muted = true
     const p = video.play()
     if (p && typeof p.then === 'function') {
-      // Autoplay refused (Low Power Mode): skip the smoke, keep the logo.
-      p.catch(handover)
+      p.catch(() => {
+        RETRY_EVENTS.forEach((ev) =>
+          window.addEventListener(ev, retryPlay, { once: true, passive: true }),
+        )
+        video.addEventListener(
+          'playing',
+          () => clearTimeout(graceTimeout),
+          { once: true },
+        )
+        graceTimeout = setTimeout(handover, 3500)
+      })
     }
 
     return () => {
       clearTimeout(bootTimeout)
       clearTimeout(hardTimeout)
+      clearTimeout(graceTimeout)
+      RETRY_EVENTS.forEach((ev) => window.removeEventListener(ev, retryPlay))
       video.removeEventListener('timeupdate', onTime)
       video.removeEventListener('ended', handover)
       video.removeEventListener('error', handover)

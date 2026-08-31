@@ -80,23 +80,35 @@ export default function Story() {
         clears, so scrubbing never waits on the network. The existing
         onloadedmetadata handlers re-sync currentTime after load().
       */
+      /*
+        NOTHING from page 2 loads until the hero's flight is over. The
+        element-based starts kept misfiring: 'top 130%' landed the fetch +
+        first decode + WebGL bring-up mid-seam on a fast scroll, and
+        "improving" it to 'top 250%' actually resolved to a NEGATIVE
+        scroll position (story top = 2 viewports < 2.5 viewports), so both
+        videos downloaded AT LOAD — in bandwidth competition with
+        intro.mp4 during the preloader. The trigger is now an ABSOLUTE
+        scroll position: one viewport, the exact end of the hero timeline.
+
+        Priming (the iOS play/pause paint fix) moved in here too: play()
+        on a metadata-preload video starts the fetch, so priming at mount
+        was ALSO downloading both videos at load. The first-gesture
+        primeAll listeners remain below as the iOS safety net.
+      */
+      const upgradeStoryMedia = () => {
+        ;[bgVideoRef.current, avatarRef.current].forEach((v) => {
+          if (v && v.preload !== 'auto') {
+            v.preload = 'auto'
+            v.load()
+          }
+        })
+        primeVideo(bgVideoRef.current)
+        primeVideo(avatarRef.current)
+      }
       ScrollTrigger.create({
-        trigger: scope.current,
-        // 250%, not 130%: the upgrade also triggers the avatar's first
-        // decode + the WebGL probe, and at 130% those landed exactly in
-        // the hero→story transit on a fast scroll — a synchronous
-        // readPixels stall in the middle of the seam. Two and a half
-        // viewports of headroom moves all of it well before arrival.
-        start: 'top 250%',
+        start: () => window.innerHeight,
         once: true,
-        onEnter: () => {
-          ;[bgVideoRef.current, avatarRef.current].forEach((v) => {
-            if (v && v.preload !== 'auto') {
-              v.preload = 'auto'
-              v.load()
-            }
-          })
-        },
+        onEnter: upgradeStoryMedia,
       })
 
       /*
@@ -386,8 +398,10 @@ export default function Story() {
       // StrictMode re-runs.
       /*
         iOS: a never-played <video> paints nothing once you seek it (see
-        primeVideo in Hero.jsx). Both Studio videos are scrub-driven, so both
-        must be primed — at load and on the first user gesture.
+        primeVideo in Hero.jsx). Both Studio videos are scrub-driven, so
+        both must be primed. Priming at MOUNT is gone (it forced the fetch
+        at load — see upgradeStoryMedia); it now happens in the upgrade
+        trigger, with the first user gesture kept as the iOS guarantee.
       */
       const primeAll = () => {
         primeVideo(bgVideoRef.current)
@@ -396,8 +410,6 @@ export default function Story() {
         applyAvSeek()
         renderAvatarFrame()
       }
-      primeVideo(bgVideoRef.current)
-      primeVideo(avatarRef.current)
       window.addEventListener('touchstart', primeAll, { once: true, passive: true })
       window.addEventListener('pointerdown', primeAll, { once: true, passive: true })
 
