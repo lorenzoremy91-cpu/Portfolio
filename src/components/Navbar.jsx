@@ -14,6 +14,41 @@ export default function Navbar() {
   const veilRef = useRef(null)
   const introTlRef = useRef(null)
   const closingRef = useRef(false)
+  const logoRef = useRef(null)
+
+  /*
+    Phones only: the bar's "Césure." wordmark is hidden while the hero is at
+    the top of the page — the monumental STUDIO CÉSURE is right there, and
+    doubling it in the corner is noise. It fades in once the user starts
+    scrolling (and back out on returning to the top).
+
+    Deliberately a plain scroll listener, NOT a ScrollTrigger: the mobile
+    scroll pipeline (normalizeScroll, the no-pin scrub) is settled and this
+    must not add a trigger to it. Passive listener + a threshold check is
+    free, and gsap.to with overwrite handles rapid direction flips.
+  */
+  useGSAP(() => {
+    if (!window.matchMedia('(max-width: 767px)').matches) return undefined
+    const logo = logoRef.current
+    if (!logo) return undefined
+    let shown = false
+    const sync = () => {
+      const want = window.scrollY > 60
+      if (want !== shown) {
+        shown = want
+        gsap.to(logo, {
+          autoAlpha: want ? 1 : 0,
+          duration: want ? 0.5 : 0.3,
+          ease: 'power2.out',
+          overwrite: 'auto',
+        })
+      }
+    }
+    gsap.set(logo, { autoAlpha: 0 })
+    sync() // a mid-page reload starts with the logo already visible
+    window.addEventListener('scroll', sync, { passive: true })
+    return () => window.removeEventListener('scroll', sync)
+  }, [])
 
   /*
     Section navigation with a veil transition: a cream layer fades in, the
@@ -117,8 +152,10 @@ export default function Navbar() {
     closeMenu(() => navigateTo(href))
   }
 
+  // Slimmer bar on phones (h-14 = 56px) to give the screen back to the
+  // hero; the section's mobile pt-14 matches it. md+ keeps h-nav.
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-nav">
+    <header className="fixed inset-x-0 top-0 z-50 h-14 md:h-nav">
       {/* Navigation veil — a rising wipe that covers the instant jump
           between sections; gold hairline on its leading (top) edge */}
       <div
@@ -130,7 +167,7 @@ export default function Navbar() {
           scrolled content never collides visually with the menu; md+ keeps
           the fully transparent desktop bar. */}
       <nav className="flex h-full items-center justify-between px-6 max-md:bg-cream/75 max-md:backdrop-blur-md md:px-10">
-        <a href="/" className="font-display text-lg font-medium tracking-tight">
+        <a ref={logoRef} href="/" className="font-display text-lg font-medium tracking-tight">
           Césure<span className="text-accent">.</span>
         </a>
 
@@ -168,7 +205,7 @@ export default function Navbar() {
           ref={overlayRef}
           className="fixed inset-0 z-[60] flex flex-col bg-cream px-6 pb-10 md:hidden"
         >
-          <div className="flex h-nav items-center justify-between">
+          <div className="flex h-14 items-center justify-between">
             <a href="/" className="font-display text-lg font-medium tracking-tight">
               Césure<span className="text-accent">.</span>
             </a>

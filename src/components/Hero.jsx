@@ -99,7 +99,16 @@ window.addEventListener('orientationchange', () => {
 const REDUCED_MQ = window.matchMedia('(prefers-reduced-motion: reduce)')
 const FINE_POINTER_MQ = window.matchMedia('(hover: hover) and (pointer: fine)')
 
-const TITLE = 'CÉSURE'
+/*
+  Two-line lockup: "STUDIO" as a tracked-out eyebrow line, "CÉSURE" at the
+  monumental size. One line was rejected by arithmetic: Playfair caps run
+  ~0.97em per glyph here, so the 13 glyphs of "STUDIO CÉSURE" would force
+  the font down to ~27px on a 390px screen. Stacking keeps the scale.
+  Each line renders through the same data-letter reveal (13 spans total,
+  top line first).
+*/
+const TITLE_LINES = ['STUDIO', 'CÉSURE']
+const TITLE = TITLE_LINES.join(' ')
 
 // Master plate: daisy in the lower-left of the studio background,
 // petals fly off over the video's 5s — playback is scrubbed by scroll.
@@ -605,7 +614,14 @@ export default function Hero() {
         minHeight: `${viewportH}px`,
         ...(MOBILE_NO_PIN ? null : { willChange: 'transform' }),
       }}
-      className="relative flex flex-col justify-center overflow-hidden px-6 pt-nav md:px-10"
+      /*
+        Phones: content flows from the top (justify-start + a measured
+        margin on the block below) instead of vertical centering, per the
+        mobile mockup — the type block hugs the header so the daisy owns
+        the lower two thirds. pt-14 pairs with the slimmer mobile navbar.
+        md+ keeps the centered composition untouched.
+      */
+      className="relative flex flex-col overflow-hidden px-6 pt-14 max-md:justify-start md:justify-center md:px-10 md:pt-nav"
     >
 
       {/* Layer 0.5 — cursor image trail, under the typography. Cards live at
@@ -635,28 +651,45 @@ export default function Hero() {
 
       {/* Layer 1 — central typography over the plate's daisy (lower left),
           lifted well above center so the composition breathes */}
-      <div className="relative z-10 mx-auto -mt-[5vh] w-full max-w-4xl text-center md:-mt-[15vh]">
+      <div className="relative z-10 mx-auto w-full max-w-4xl text-center max-md:mt-[6vh] md:-mt-[15vh]">
         <h1
           aria-label={TITLE}
-          className="font-serif overflow-hidden text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] md:text-[9.5vw] lg:text-[9vw]"
+          className="font-serif text-[clamp(3rem,15vw,6rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em] md:text-[9.5vw] lg:text-[9vw]"
         >
-          {TITLE.split('').map((letter, i) => (
-            <span
-              key={i}
-              data-letter
-              aria-hidden="true"
-              className="inline-block will-change-transform"
-            >
-              {letter}
-            </span>
-          ))}
+          {/* Eyebrow line — 0.3em of the display size, airy tracking. The
+              trailing tracking of the last letter is cancelled so the wide
+              letter-spacing doesn't push the line off optical center. */}
+          <span className="block overflow-hidden text-[0.3em] tracking-[0.42em] [&>span:last-child]:-mr-[0.42em]">
+            {TITLE_LINES[0].split('').map((letter, i) => (
+              <span
+                key={i}
+                data-letter
+                aria-hidden="true"
+                className="inline-block will-change-transform"
+              >
+                {letter}
+              </span>
+            ))}
+          </span>
+          <span className="block overflow-hidden">
+            {TITLE_LINES[1].split('').map((letter, i) => (
+              <span
+                key={i}
+                data-letter
+                aria-hidden="true"
+                className="inline-block will-change-transform"
+              >
+                {letter}
+              </span>
+            ))}
+          </span>
         </h1>
         <span data-tagline className="mx-auto mt-3 block h-px w-12 bg-accent" />
         <p
           data-tagline
           className="mx-auto mt-3 max-w-md text-sm uppercase tracking-widest text-ink/85 md:text-base"
         >
-          L'art du détail, le rythme de l'image.
+          Le silence qui fait exister le mouvement.
         </p>
         <div data-cta className="mt-8">
           <a
@@ -665,7 +698,7 @@ export default function Hero() {
             // (the pill measured 40px before, just under the threshold).
             className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink transition-all duration-300 hover:bg-ink hover:text-cream"
           >
-            Projets
+            Nos créations
             <span
               aria-hidden="true"
               className="transition-transform duration-300 group-hover:translate-y-0.5"

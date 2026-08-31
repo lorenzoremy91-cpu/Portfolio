@@ -9,9 +9,21 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 const AVATAR_VIDEO = '/videos/figurinet-cartoon.mp4'
 
 const PILLARS = [
-  { label: 'Design', detail: 'Identités, directions artistiques, systèmes' },
-  { label: 'Motion', detail: '3D, animation, films de marque' },
-  { label: 'Développement', detail: 'Sites, expériences interactives' },
+  {
+    label: 'Design & Direction Artistique',
+    detail:
+      "Des interfaces modernes, claires et pensées pour la conversion. Nous retirons le superflu pour concevoir des parcours utilisateurs intuitifs, où votre identité visuelle capte immédiatement l'attention.",
+  },
+  {
+    label: 'Motion Design & 3D',
+    detail:
+      "Le mouvement au service de l'impact. Nous intégrons des animations et des éléments 3D pour donner de la profondeur à votre site, dynamiser l'expérience utilisateur, sans jamais sacrifier la vitesse de chargement.",
+  },
+  {
+    label: 'Développement Web',
+    detail:
+      "L'exigence technique avant tout. Nous développons des sites rapides, sécurisés et optimisés. Du code propre, des livraisons rapides et une communication transparente de la maquette jusqu'à la mise en ligne.",
+  },
 ]
 
 export default function Story() {
@@ -120,20 +132,40 @@ export default function Story() {
         while everything around his outline stays visible. No blend modes
         involved, so no stacking-context fragility.
 
-        NOW ON THE GPU. The 2D-canvas version of this ran a 547k-pixel JS
-        loop bracketed by getImageData/putImageData — a full GPU→CPU→GPU
-        round trip per decoded frame, ~8-15ms on the main thread, burned
-        inside onseeked while the user was mid-scroll. That was the desktop
-        judder.
+        NOW ON THE GPU — with two hard-won lessons baked in.
 
-        The WebGL path runs the SAME algorithm with the same thresholds
-        (mn>130, spread 16→30 ramp) as a fragment shader: per frame the CPU
-        does one texImage2D upload and one draw call — well under a
-        millisecond — and the pixels never come back to the CPU.
-        premultipliedAlpha:false matches putImageData's compositing
-        semantics exactly, so edges render identically. If context creation
-        fails (blocklisted driver), keyAvatar2D below is the original code,
-        verbatim.
+        The 2D-canvas version ran a 547k-pixel JS loop bracketed by
+        getImageData/putImageData per decoded frame, ~4-15ms on the main
+        thread inside onseeked, mid-scroll. That was the desktop judder. The
+        WebGL path runs the SAME algorithm with the same thresholds (mn>130,
+        spread 16→30 ramp) as a fragment shader: one texImage2D and one draw
+        call per frame, ~0.03ms, pixels never return to the CPU.
+
+        LESSON 1 — the first WebGL version shipped with premultipliedAlpha:
+        false and rendered an OPAQUE WHITE box on a real iPhone. The drawing
+        buffer was verified pixel-exact by readPixels, but readPixels sees
+        the buffer, not the screen: iOS Safari composited that buffer as if
+        it were opaque. So the shader now outputs PREMULTIPLIED alpha
+        (rgb*a, a) on a default-attributes context — the composite path
+        every browser exercises constantly — which is mathematically the
+        same blend as putImageData's un-premultiplied data
+        (src*a + dst*(1-a) either way).
+
+        LESSON 2 — never promise a fallback you cannot deliver. A canvas is
+        permanently bound to its first getContext type, so "try webgl on the
+        visible canvas, fall back to 2d" was a lie: after a webgl context
+        exists, getContext('2d') returns null and the fallback paints
+        nothing. The pipeline is therefore PROVEN on a throwaway canvas
+        first — real shader, real video frame, readPixels on a backdrop
+        corner that must come back keyed — and only a fully validated
+        pipeline is allowed to claim the visible canvas.
+
+        And the belt over those braces: coarse-pointer devices (every phone)
+        never enter the GL path at all. They run keyAvatar2D — the exact
+        code that was proven on the user's own iPhone for weeks. Its cost
+        was never the phone's bottleneck (the trackpad's seek rate was); the
+        judder this rewrite fixes is a fine-pointer problem, so the GL path
+        is a fine-pointer path.
       */
       const AVATAR_FRAG = `
         precision mediump float;
@@ -149,7 +181,7 @@ export default function Story() {
             if (spread < 16.0) a = 0.0;
             else if (spread < 30.0) a = (spread - 16.0) / 14.0;
           }
-          gl_FragColor = vec4(c.rgb, a);
+          gl_FragColor = vec4(c.rgb * a, a);
         }`
       const AVATAR_VERT = `
         attribute vec2 a_pos;
@@ -158,17 +190,13 @@ export default function Story() {
           v_uv = a_pos * 0.5 + 0.5;
           gl_Position = vec4(a_pos, 0.0, 1.0);
         }`
-      // Lazily initialised: null = not tried yet, false = unavailable
-      // (this canvas then falls back to the 2D path forever).
-      let glState = null
-      const initAvatarGL = (canvas) => {
-        const gl = canvas.getContext('webgl', {
-          premultipliedAlpha: false,
-          alpha: true,
-          antialias: false,
-          preserveDrawingBuffer: false,
-        })
-        if (!gl) return false
+      const FINE_POINTER = window.matchMedia(
+        '(hover: hover) and (pointer: fine)',
+      ).matches
+      // Builds the whole pipeline on a given canvas. Returns {gl} or null.
+      const buildGL = (canvas) => {
+        const gl = canvas.getContext('webgl', { antialias: false })
+        if (!gl) return null
         const mk = (type, src) => {
           const s = gl.createShader(type)
           gl.shaderSource(s, src)
@@ -177,12 +205,12 @@ export default function Story() {
         }
         const vs = mk(gl.VERTEX_SHADER, AVATAR_VERT)
         const fs = mk(gl.FRAGMENT_SHADER, AVATAR_FRAG)
-        if (!vs || !fs) return false
+        if (!vs || !fs) return null
         const prog = gl.createProgram()
         gl.attachShader(prog, vs)
         gl.attachShader(prog, fs)
         gl.linkProgram(prog)
-        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return false
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null
         gl.useProgram(prog)
         const buf = gl.createBuffer()
         gl.bindBuffer(gl.ARRAY_BUFFER, buf)
@@ -203,8 +231,47 @@ export default function Story() {
         // Video frames arrive top-row-first; flip so the quad's uv origin
         // (bottom-left) shows the image upright.
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+        return { gl }
+      }
+      /*
+        End-to-end proof on a throwaway canvas: upload the REAL current
+        video frame, run the REAL shader, then read a corner block that is
+        pure studio backdrop in every frame of the turntable. Keyed, its
+        alpha must be ~0; anything bright there means some link in the
+        chain (context, upload from this video element, shader, alpha
+        buffer) is broken on this browser — so the visible canvas is never
+        touched by GL and the 2D path keeps working.
+      */
+      const probeGL = (video) => {
+        try {
+          const c = document.createElement('canvas')
+          c.width = 64
+          c.height = 64
+          const built = buildGL(c)
+          if (!built) return false
+          const { gl } = built
+          gl.viewport(0, 0, 64, 64)
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video)
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+          if (gl.getError() !== gl.NO_ERROR) return false
+          const px = new Uint8Array(8 * 8 * 4)
+          gl.readPixels(0, 0, 8, 8, gl.RGBA, gl.UNSIGNED_BYTE, px)
+          let alphaSum = 0
+          for (let i = 3; i < px.length; i += 4) alphaSum += px[i]
+          return alphaSum / 64 < 64 // corner must be keyed out
+        } catch {
+          return false
+        }
+      }
+      // Lazily initialised: null = not tried yet, false = 2D path forever.
+      let glState = null
+      const initAvatarGL = (canvas, video) => {
+        if (!FINE_POINTER) return false
+        if (!probeGL(video)) return false
+        const built = buildGL(canvas)
+        if (!built) return false
         // A lost context invalidates every object above — back to "not
-        // tried" so the next frame re-initialises on the restored context.
+        // tried" so the next frame re-probes on the restored context.
         canvas.addEventListener('webglcontextlost', (e) => {
           e.preventDefault()
           glState = null
@@ -213,7 +280,7 @@ export default function Story() {
           glState = null
           renderAvatarFrame()
         })
-        return { gl }
+        return built
       }
       // The original CPU path, kept verbatim as the fallback.
       const keyAvatar2D = (video, canvas, kw, kh) => {
@@ -248,7 +315,7 @@ export default function Story() {
           canvas.width = kw
           canvas.height = kh
         }
-        if (glState === null) glState = initAvatarGL(canvas)
+        if (glState === null) glState = initAvatarGL(canvas, video)
         if (glState) {
           const { gl } = glState
           if (gl.isContextLost()) {
@@ -502,59 +569,67 @@ export default function Story() {
             className="flex items-center gap-3 text-xs uppercase tracking-widest text-ink/60"
           >
             <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Le studio
+            L'approche
           </p>
 
           <h2
             data-story
             className="font-display mt-6 text-[clamp(1.875rem,9vw,2.75rem)] font-medium leading-tight tracking-hero md:text-5xl lg:text-6xl"
           >
-            Césure <span className="text-accent">—</span> la pause
-            <br />
-            qui donne le{' '}
+            L'art d'aller à{' '}
             <span className="underline decoration-accent decoration-2 underline-offset-8">
-              rythme
+              l'essentiel
             </span>
             .
           </h2>
 
           <div className="mt-10 max-w-xl space-y-6 text-base leading-relaxed text-ink/80 md:text-lg">
             <p data-story>
-              En poésie, la césure est cette respiration placée au cœur du
-              vers&nbsp;: un silence bref qui structure tout ce qui l'entoure.
-              C'est l'idée fondatrice du studio — dans un flux d'images
-              continu, ce sont les pauses qui font exister les choses.
+              Sur Internet, le trop-plein d'informations tue le message.
+              L'attention des utilisateurs est devenue rare. La
+              «&nbsp;Césure&nbsp;», c'est ce temps d'arrêt, cette respiration
+              visuelle qui permet à votre marque de se démarquer et d'être
+              comprise instantanément.
             </p>
             <p data-story>
-              Césure est un studio digital indépendant basé à Paris. Nous
-              concevons des identités, des films et des expériences web pour
-              des marques qui préfèrent la justesse à l'accumulation&nbsp;:
-              peu d'éléments, précisément posés, animés avec intention.
+              Le Studio Césure, dirigé par Lorenzo Remy, est né d'une
+              conviction simple&nbsp;: un design performant ne consiste pas à
+              surcharger l'écran, mais à faire des choix justes. Nous
+              concevons des sites web et des expériences interactives avec une
+              approche directe et sans détours. Pas de bla-bla ni de concepts
+              abstraits&nbsp;: nous mettons notre maîtrise technique (3D,
+              motion design, développement front-end) au service de vos
+              objectifs.
             </p>
             <p data-story>
-              Notre conviction&nbsp;: la lumière, la matière et le mouvement
-              racontent plus qu'un long discours. Chaque projet commence par
-              retirer — jusqu'à ce qu'il ne reste que l'essentiel, et le
-              rythme qui le porte.
+              Notre promesse est concrète&nbsp;: livrer des interfaces
+              élégantes, des animations fluides et un code robuste, le tout
+              avec une vraie rigueur sur le respect des délais.
             </p>
           </div>
 
-          <ul className="mt-14 divide-y divide-ink/10 border-y border-ink/10">
+          {/* Full-sentence expertise entries: title row, then the pitch in
+              sentence case underneath — the old uppercase keyword column
+              could not carry three-line descriptions. */}
+          <p
+            data-story
+            className="mt-16 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/60"
+          >
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
+            L'expertise
+          </p>
+          <ul className="mt-6 divide-y divide-ink/10 border-y border-ink/10">
             {PILLARS.map((pillar, i) => (
-              <li
-                key={pillar.label}
-                data-story
-                className="group flex items-baseline justify-between gap-6 py-5"
-              >
-                <span className="font-display text-xl font-medium tracking-tight transition-colors group-hover:text-accent md:text-2xl">
+              <li key={pillar.label} data-story className="group py-6">
+                <h3 className="font-display text-xl font-medium tracking-tight transition-colors group-hover:text-accent md:text-2xl">
                   <span className="mr-3 align-middle text-xs text-accent">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   {pillar.label}
-                </span>
-                <span className="text-right text-xs uppercase tracking-widest text-ink/60 transition-colors group-hover:text-ink">
+                </h3>
+                <p className="mt-3 max-w-xl pl-0 text-sm leading-relaxed text-ink/70 md:pl-8 md:text-base">
                   {pillar.detail}
-                </span>
+                </p>
               </li>
             ))}
           </ul>
