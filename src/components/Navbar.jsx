@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 
@@ -15,6 +16,8 @@ export default function Navbar() {
   const introTlRef = useRef(null)
   const closingRef = useRef(false)
   const logoRef = useRef(null)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   /*
     Phones only: the bar's "Césure." wordmark is hidden while the hero is at
@@ -71,6 +74,16 @@ export default function Navbar() {
     motion gets a plain instant jump.
   */
   const navigateTo = (href) => {
+    /*
+      The section links point at anchors that only exist on the home route.
+      From a case study page there is nothing to scroll to, so the veil
+      would play over a page that never moves — hand the router the job
+      instead and let Home's own hash handling land the scroll.
+    */
+    if (location.pathname !== '/') {
+      navigate(`/${href}`)
+      return
+    }
     const target = document.querySelector(href)
     if (!target) return
     const jump = () => {

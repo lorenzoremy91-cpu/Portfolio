@@ -1,51 +1,35 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { fetchProjects, layoutFor, CATEGORY_LABELS } from '../lib/projects.js'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
-// Placeholder roster — swap media/titles as real case studies land.
-// (The 3D avatar deliberately does NOT appear here: it lives solely in the
-// Story section.)
-const PROJECTS = [
-  {
-    title: 'Marguerite',
-    category: 'Direction artistique',
-    year: '2026',
-    media: { type: 'video', src: '/videos/daisy.mp4' },
-    ratio: 'aspect-[4/3]',
-    span: 'md:col-span-7',
-  },
-  {
-    title: 'Lumière',
-    category: 'Identité visuelle',
-    year: '2025',
-    media: { type: 'image', src: '/images/lumiere.jpg' },
-    ratio: 'aspect-[4/5]',
-    span: 'md:col-span-5 md:mt-32',
-  },
-  {
-    title: 'Interlude',
-    category: 'Développement web',
-    year: '2025',
-    media: { type: 'image', src: '/images/interlude.jpg' },
-    ratio: 'aspect-[16/9]',
-    span: 'md:col-span-7 md:col-start-6',
-  },
-]
+/*
+  The roster now comes from Sanity (src/lib/projects.js), which falls back to
+  a local list whenever the CMS is unconfigured, unreachable or empty — the
+  grid can never render blank.
 
+  Note what is NOT stored per project: its column span and aspect ratio. The
+  editorial rhythm is derived from the card's position by layoutFor(), so
+  adding a client is a content act, never a layout decision.
+  (The 3D avatar deliberately does NOT appear here: it lives solely in the
+  Story section.)
+*/
 function ProjectCard({ project, index }) {
-  const { title, category, year, media, ratio, span } = project
+  const { title, category, year, slug, coverUrl, coverVideoUrl, coverAlt, featured } = project
+  const { span, ratio } = layoutFor(index, featured)
   const hoverZoom =
     'transition-transform duration-700 ease-out group-hover:scale-[1.04]'
   return (
     <article data-project className={`group col-span-1 ${span}`}>
-      <a href="#" className="block">
+      <Link to={`/projets/${slug}`} className="block">
         <div className={`overflow-hidden bg-stone-soft ${ratio}`}>
-          {media.type === 'video' ? (
+          {coverVideoUrl ? (
             <video
-              src={media.src}
+              src={coverVideoUrl}
               autoPlay
               muted
               loop
@@ -55,8 +39,8 @@ function ProjectCard({ project, index }) {
             />
           ) : (
             <img
-              src={media.src}
-              alt={title}
+              src={coverUrl}
+              alt={coverAlt || title}
               loading="lazy"
               decoding="async"
               className={`h-full w-full object-cover ${hoverZoom}`}
@@ -71,20 +55,36 @@ function ProjectCard({ project, index }) {
             {title}
           </h3>
           <p className="text-xs uppercase tracking-widest text-ink/60">
-            {category} — {year}
+            {CATEGORY_LABELS[category] || category}
+            {year ? ` — ${year}` : ''}
           </p>
         </div>
-      </a>
+      </Link>
     </article>
   )
 }
 
 export default function Projects() {
   const scope = useRef(null)
+  const [projects, setProjects] = useState([])
+
+  useEffect(() => {
+    let alive = true
+    fetchProjects().then((list) => {
+      if (alive) setProjects(list)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useGSAP(
     () => {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      // The cards arrive asynchronously, so this must re-run once they exist
+      // (see `dependencies` below) — on the first pass the grid is empty and
+      // toArray would match nothing.
+      if (!projects.length) return
 
       gsap.from('[data-projects-heading]', {
         y: 48,
@@ -109,8 +109,32 @@ export default function Projects() {
           },
         })
       })
+
+      /*
+        Cover images have no intrinsic size until they load, so every trigger
+        below this section would be measured against a collapsing page.
+        One refresh once the grid's media has settled keeps the Contact
+        section's triggers — and the document height — honest.
+      */
+      const media = gsap.utils.toArray('[data-project] img, [data-project] video')
+      let pending = media.length
+      if (!pending) return
+      const settle = () => {
+        pending -= 1
+        if (pending <= 0) ScrollTrigger.refresh()
+      }
+      media.forEach((el) => {
+        const done =
+          el.tagName === 'IMG' ? el.complete : el.readyState >= 1
+        if (done) settle()
+        else {
+          el.addEventListener('load', settle, { once: true })
+          el.addEventListener('loadedmetadata', settle, { once: true })
+          el.addEventListener('error', settle, { once: true })
+        }
+      })
     },
-    { scope },
+    { scope, dependencies: [projects] },
   )
 
   return (
@@ -124,13 +148,13 @@ export default function Projects() {
             Projets
           </h2>
           <span className="text-xs uppercase tracking-widest text-ink/60">
-            ({String(PROJECTS.length).padStart(2, '0')})
+            ({String(projects.length).padStart(2, '0')})
           </span>
         </header>
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-20 md:grid-cols-12 md:gap-y-8">
-          {PROJECTS.map((project, i) => (
-            <ProjectCard key={project.title} project={project} index={i} />
+          {projects.map((project, i) => (
+            <ProjectCard key={project._id} project={project} index={i} />
           ))}
         </div>
       </div>

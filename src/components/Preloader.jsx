@@ -60,6 +60,11 @@ const removeShield = () => {
 
 const finishFlag = () => {
   window.__CESURE_INTRO_DONE__ = true
+  try {
+    sessionStorage.setItem('cesure:intro', 'done')
+  } catch {
+    /* storage unavailable — the intro simply plays again next route change */
+  }
   window.dispatchEvent(new Event('cesure:intro-done'))
 }
 
@@ -75,7 +80,20 @@ export default function Preloader() {
 
   useGSAP(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const skip = reduced || location.search.includes('nointro')
+    /*
+      Once per session, not once per mount. Now that the site has routes,
+      returning home from a case study re-mounts this component — and a
+      second eight-second powder bloom on the way back is an obstacle, not
+      an entrance. sessionStorage (not localStorage) so a genuinely new
+      visit still gets the full sequence.
+    */
+    let alreadyPlayed = false
+    try {
+      alreadyPlayed = sessionStorage.getItem('cesure:intro') === 'done'
+    } catch {
+      /* Safari private mode throws on sessionStorage — treat as first visit */
+    }
+    const skip = reduced || alreadyPlayed || location.search.includes('nointro')
     if (skip) {
       removeShield()
       finishFlag()

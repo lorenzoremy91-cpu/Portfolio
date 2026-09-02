@@ -1,0 +1,41 @@
+[
+  {
+    "_id": "fallback-marguerite",
+    "title": "Marguerite",
+    "category": "Direction artistique",
+    "year": "2026",
+    "url": null,
+    "mediaType": "video",
+    "videoUrl": "/videos/daisy.mp4",
+    "imageUrl": null,
+    "format": "landscape",
+    "emphasis": "large",
+    "alignment": "left"
+  },
+  {
+    "_id": "fallback-lumiere",
+    "title": "Lumière",
+    "category": "Identité visuelle",
+    "year": "2025",
+    "url": null,
+    "mediaType": "image",
+    "videoUrl": null,
+    "imageUrl": "/images/lumiere.jpg",
+    "format": "portrait",
+    "emphasis": "small",
+    "alignment": "right"
+  },
+  {
+    "_id": "fallback-interlude",
+    "title": "Interlude",
+    "category": "Développement web",
+    "year": "2025",
+    "url": null,
+    "mediaType": "image",
+    "videoUrl": null,
+    "imageUrl": "/images/interlude.jpg",
+    "format": "wide",
+    "emphasis": "large",
+    "alignment": "right"
+  }
+]
