@@ -48,20 +48,22 @@ export default defineType({
       type: 'string',
       group: 'card',
       /*
-        Liste fermée plutôt qu'un type « catégorie » séparé : le studio a
-        exactement trois expertises (elles sont écrites en page 2), une
-        liste déroulante est plus simple pour l'éditeur qu'un document à
-        référencer. Si un jour tu veux filtrer par discipline ou en ajouter
-        beaucoup, on passera à des références.
+        Texte libre, volontairement. C'était une liste fermée de trois
+        valeurs ; chaque nouveau type de mission aurait demandé une
+        modification du schéma et un redéploiement du studio.
+
+        Conséquence côté site : ce que tu écris ici s'affiche TEL QUEL sur
+        la carte et sur la page projet. Il n'y a plus aucune table de
+        correspondance — elle est supprimée exprès, car avec un champ libre
+        elle réécrirait en silence trois mots magiques (« design » serait
+        devenu « Design & Direction Artistique »).
+
+        Écris donc la formulation exacte que tu veux voir, majuscules
+        comprises. Ex : « Direction artistique », « Identité visuelle »,
+        « Site vitrine ».
       */
-      options: {
-        list: [
-          { title: 'Design & Direction Artistique', value: 'design' },
-          { title: 'Motion Design & 3D', value: 'motion' },
-          { title: 'Développement Web', value: 'dev' },
-        ],
-        layout: 'radio',
-      },
+      description:
+        "S'affiche tel quel sur le site. Ex : Direction artistique, Identité visuelle, Site e-commerce.",
       validation: (r) => r.required(),
     }),
     defineField({

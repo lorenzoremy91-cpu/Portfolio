@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { fetchProjects, layoutFor, CATEGORY_LABELS } from '../lib/projects.js'
+import { fetchProjects, layoutFor } from '../lib/projects.js'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -55,7 +55,7 @@ function ProjectCard({ project, index }) {
             {title}
           </h3>
           <p className="text-xs uppercase tracking-widest text-ink/60">
-            {CATEGORY_LABELS[category] || category}
+            {category}
             {year ? ` — ${year}` : ''}
           </p>
         </div>

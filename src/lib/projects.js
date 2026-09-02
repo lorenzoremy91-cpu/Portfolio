@@ -27,11 +27,13 @@ export function layoutFor(index, featured) {
   return featured ? FEATURED_LAYOUT : RHYTHM[index % RHYTHM.length]
 }
 
-export const CATEGORY_LABELS = {
-  design: 'Design & Direction Artistique',
-  motion: 'Motion Design & 3D',
-  dev: 'Développement Web',
-}
+/*
+  Il n'y a délibérément PLUS de table CATEGORY_LABELS ici. Le champ
+  « Discipline » du CMS est passé en texte libre, et une table de
+  correspondance y devient un piège : elle réécrirait en silence trois
+  valeurs particulières (taper « design » aurait affiché « Design &
+  Direction Artistique »). Ce que l'éditeur écrit est ce qui s'affiche.
+*/
 
 /*
   Données de repli : ce que le site affiche tant que Sanity n'est pas
@@ -45,7 +47,7 @@ export const FALLBACK_PROJECTS = [
     title: 'Marguerite',
     slug: 'marguerite',
     client: 'Projet interne',
-    category: 'design',
+    category: 'Direction artistique',
     year: 2026,
     summary:
       "L'étude de mouvement qui a donné naissance à l'identité du studio.",
@@ -59,7 +61,7 @@ export const FALLBACK_PROJECTS = [
     title: 'Lumière',
     slug: 'lumiere',
     client: 'Projet interne',
-    category: 'design',
+    category: 'Direction artistique',
     year: 2025,
     summary: 'Une recherche sur la lumière comme matière première du design.',
     coverUrl: '/images/lumiere.jpg',
@@ -72,7 +74,7 @@ export const FALLBACK_PROJECTS = [
     title: 'Interlude',
     slug: 'interlude',
     client: 'Projet interne',
-    category: 'dev',
+    category: 'Développement web',
     year: 2025,
     summary: 'Une expérience web construite autour du silence et du rythme.',
     coverUrl: '/images/interlude.jpg',

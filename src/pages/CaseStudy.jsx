@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { PortableText } from '@portabletext/react'
 import Navbar from '../components/Navbar.jsx'
-import { fetchProject, CATEGORY_LABELS } from '../lib/projects.js'
+import { fetchProject } from '../lib/projects.js'
 import { urlFor } from '../lib/sanity.js'
 
 /*
@@ -163,7 +163,7 @@ export default function CaseStudy() {
 
             <p className="mt-10 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/60">
               <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
-              {CATEGORY_LABELS[category] || category}
+              {category}
             </p>
 
             <h1 className="font-serif mt-6 max-w-4xl text-[clamp(2.5rem,11vw,5rem)] font-semibold uppercase leading-[1.02] tracking-[-0.01em] [transform:translateZ(0)]">
