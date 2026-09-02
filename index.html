@@ -8,9 +8,11 @@
     <meta name="theme-color" content="#f4f1ea" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- The intro video must start the moment React mounts — fetch it in
-         parallel with the JS bundle instead of after it. -->
-    <link rel="preload" as="video" href="/videos/intro.mp4" fetchpriority="high" />
+    <!-- Note: there is deliberately no <link rel="preload"> for intro.mp4.
+         `as="video"` is not a valid value (the spec allows audio, document,
+         embed, fetch, font, image, object, script, style, track, worker), so
+         the browser ignored the hint entirely and only logged a warning. The
+         <video preload="auto"> element does the eager fetch on its own. -->
     <!--
       Type direction: Fraunces (variable optical axis up to 144pt — hairline
       contrast at display size, soft artisanal terminals) carries the brand

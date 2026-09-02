@@ -1,5 +1,5 @@
 import { createClient } from '@sanity/client'
-import imageUrlBuilder from '@sanity/image-url'
+import { createImageUrlBuilder } from '@sanity/image-url'
 
 /*
   Connexion Sanity — optionnelle par construction.
@@ -29,7 +29,8 @@ export const client = sanityEnabled
     })
   : null
 
-const builder = client ? imageUrlBuilder(client) : null
+// Named export: the default export is deprecated upstream.
+const builder = client ? createImageUrlBuilder(client) : null
 
 /*
   Construit une URL d'image dimensionnée à la demande. Sanity redimensionne
