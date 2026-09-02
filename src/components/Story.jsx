@@ -14,19 +14,37 @@ const AVATAR_VIDEO = '/videos/figurinet-cartoon.mp4'
   purpose.
 */
 const PILLARS = [
+  /*
+    Ces trois blocs sont écrits pour être INVÉRIFIABLES PAR UN CONCURRENT,
+    pas pour sonner bien. Chacun contient au moins un élément qu'on ne peut
+    pas revendiquer sans savoir le tenir : une méthode de travail datée
+    (maquette validée avant le code), un seuil chiffré (60 images par
+    seconde), un standard public mesurable (Core Web Vitals), ou un refus
+    explicite (jamais un thème habillé).
+
+    C'est l'inverse de la version précédente — « épurées, pensées pour
+    captiver et convertir », « marquent les esprits », « code robuste » —
+    que n'importe quelle agence pouvait recopier mot pour mot, et qu'aucun
+    client ne pouvait vérifier.
+
+    Les titres restent des noms de métier plutôt que des promesses
+    marketing : un studio sûr de lui nomme sa discipline et laisse le
+    détail prouver la maîtrise.
+  */
   {
-    label: 'Design sur-mesure',
-    detail: 'Des interfaces épurées, pensées pour captiver et convertir.',
+    label: 'Conception & direction artistique',
+    detail:
+      "Nous partons de votre objectif commercial, pas d'une tendance. Chaque page est construite autour d'une action claire, validée en maquette avant la première ligne de code : vous savez exactement ce que vous obtenez.",
   },
   {
-    label: 'Impact visuel (3D & Motion)',
+    label: 'Animation & 3D',
     detail:
-      'Des animations fluides qui marquent les esprits sans ralentir le site.',
+      "Le mouvement guide le regard, il ne décore pas. Animations sur-mesure et éléments 3D intégrés image par image, tenus à 60 images par seconde sur mobile comme sur ordinateur — la fluidité d'une application, pas d'un site alourdi.",
   },
   {
-    label: 'Performance technique',
+    label: 'Développement & performance',
     detail:
-      'Un code robuste, des temps de chargement optimisés et un référencement naturel solide.',
+      "Du code écrit sur mesure, jamais un thème habillé. Structure pensée pour le référencement, conformité aux Core Web Vitals de Google, et une interface d'administration pour rester autonome sur vos contenus.",
   },
 ]
 
