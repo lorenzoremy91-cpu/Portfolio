@@ -1,0 +1,108 @@
+# ─────────────────────────────────────────────────────────────────────
+#  Studio Césure — configuration Apache (Hostinger, hébergement mutualisé)
+#
+#  Ce fichier remplace ce que Vercel faisait automatiquement. Il est placé
+#  dans public/ pour que Vite le recopie dans dist/ à chaque build : il
+#  part donc toujours avec le site, on ne peut pas l'oublier.
+# ─────────────────────────────────────────────────────────────────────
+
+# Empêche Apache de « deviner » une extension (/projets/machin pourrait
+# sinon être servi comme un fichier au lieu de passer par la règle SPA).
+Options -MultiViews
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # ---- HTTPS obligatoire -------------------------------------------
+  # Le certificat gratuit s'active dans hPanel > SSL. Cette règle force
+  # ensuite toutes les visites en http:// vers https://.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # ---- LA RÈGLE ESSENTIELLE : routage de l'application -------------
+  # Le site est une application React : une seule page réelle
+  # (index.html) qui affiche des URL différentes. Sur le serveur, le
+  # fichier /projets/cabinet-archi n'existe PAS. Sans ces trois lignes,
+  # Apache répond 404 sur chaque page projet, et sur tout rechargement
+  # ou lien partagé.
+  #
+  # Traduction : si le chemin demandé correspond à un vrai fichier ou
+  # dossier (une image, une vidéo, le CSS), on le sert tel quel ; sinon
+  # on renvoie index.html et l'application affiche la bonne page.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# ---- Compression ----------------------------------------------------
+# Vercel compressait automatiquement. Sans ça, le JavaScript part en
+# ~350 Ko au lieu de ~120 Ko. Les vidéos et images sont déjà compressées :
+# les recompresser coûterait du processeur pour rien.
+# Le piège : la compression se déclare par TYPE MIME, et Apache récent sert
+# les .js en `text/javascript` (la RFC 9239 a rendu `application/javascript`
+# obsolète). Ne lister que l'ancien nom laisse passer le bundle en clair —
+# 565 Ko au lieu de 186 Ko, sur le chemin critique de chaque première
+# visite — pendant que le CSS, lui, est bien compressé : la panne est donc
+# invisible si on vérifie vite. Les deux orthographes sont listées, et le
+# type est forcé plus bas pour ne pas dépendre de la table MIME de l'hébergeur.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml
+  AddOutputFilterByType DEFLATE text/javascript application/javascript application/x-javascript
+  AddOutputFilterByType DEFLATE application/json image/svg+xml
+</IfModule>
+
+# ---- Cache ----------------------------------------------------------
+# Deux régimes, et la distinction est essentielle.
+#
+# 1) dist/assets/ : les fichiers portent une empreinte dans leur nom
+#    (index-priQtKZt.js). Un nom donné ne changera JAMAIS de contenu, donc
+#    cache d'un an en « immutable » : les visiteurs réguliers ne
+#    retéléchargent rien.
+#
+# 2) /videos/ et /images/ : chemins FIXES (intro.mp4 reste intro.mp4 même
+#    si tu remplaces le fichier). Un cache immuable d'un an ici serait un
+#    piège — le jour où tu changes une vidéo, tes visiteurs déjà venus
+#    garderaient l'ancienne pendant douze mois, sans aucun moyen de forcer
+#    la mise à jour. Une semaine : assez long pour la performance, assez
+#    court pour qu'un remplacement se propage.
+#
+# 3) index.html : jamais mis en cache. C'est lui qui désigne les noms de
+#    fichiers du moment ; mis en cache, il réclamerait après une mise à
+#    jour des fichiers supprimés — page blanche.
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "\.(mp4|jpe?g|png|svg|webp|avif)$" CESURE_MEDIA
+  SetEnvIf Request_URI "^/assets/"                        CESURE_HASHED
+</IfModule>
+
+<IfModule mod_headers.c>
+  # L'ordre compte : la règle « assets » passe après pour l'emporter sur
+  # la règle média si un fichier relève des deux.
+  Header set Cache-Control "public, max-age=604800"                env=CESURE_MEDIA
+  Header set Cache-Control "public, max-age=31536000, immutable"   env=CESURE_HASHED
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ---- Types MIME -----------------------------------------------------
+# Certaines configurations mutualisées ne connaissent pas ces types et
+# servent le fichier en text/plain, ce qui casse la lecture vidéo et les
+# polices. On les déclare explicitement.
+<IfModule mod_mime.c>
+  # Forcé explicitement : c'est ce type qui déclenche la compression ci-dessus.
+  AddType text/javascript .js
+  AddType video/mp4  .mp4
+  AddType font/woff2 .woff2
+  AddType image/webp .webp
+  AddType image/avif .avif
+</IfModule>
+
+# ---- Page d'erreur --------------------------------------------------
+# Filet de sécurité si mod_rewrite venait à être désactivé.
+ErrorDocument 404 /index.html
