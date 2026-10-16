@@ -42,7 +42,7 @@ export const PROJECTS = [
     summary:
       "Un site conçu pour une seule chose : faire décrocher le téléphone, à toute heure, depuis un écran de téléphone.",
     cover: {
-      src: '/images/projets/open-the-door/desktop-accueil.webp',
+      src: '/images/projets/open-the-door/desktop-accueil.webp', w: 1440, h: 900,
       alt: "Page d'accueil du site Open The Door, serrurier d'urgence",
     },
     context: [
@@ -62,12 +62,12 @@ export const PROJECTS = [
     ],
     visuals: {
       desktop: [
-        { src: '/images/projets/open-the-door/desktop-accueil.webp', alt: "Accueil : titre, bouton d'appel et note Google", caption: "Le numéro est atteignable sans défiler, de jour comme de nuit." },
-        { src: '/images/projets/open-the-door/detail-process.webp', alt: 'Section « Comment ça se passe » en trois étapes', caption: "Le déroulé répond à la vraie question : combien, et quand ?" },
-        { src: '/images/projets/open-the-door/detail-avis.webp', alt: 'Section des avis clients Google', caption: 'Les avis Google du professionnel, repris tels quels.' },
+        { src: '/images/projets/open-the-door/desktop-accueil.webp', w: 1440, h: 900, alt: "Accueil : titre, bouton d'appel et note Google", caption: "Le numéro est atteignable sans défiler, de jour comme de nuit." },
+        { src: '/images/projets/open-the-door/detail-process.webp', w: 1200, h: 684, alt: 'Section « Comment ça se passe » en trois étapes', caption: "Le déroulé répond à la vraie question : combien, et quand ?" },
+        { src: '/images/projets/open-the-door/detail-avis.webp', w: 1200, h: 667, alt: 'Section des avis clients Google', caption: 'Les avis Google du professionnel, repris tels quels.' },
       ],
       mobile: [
-        { src: '/images/projets/open-the-door/mobile-accueil.webp', alt: "Accueil du site sur téléphone, bouton d'appel visible" },
+        { src: '/images/projets/open-the-door/mobile-accueil.webp', w: 780, h: 1688, alt: "Accueil du site sur téléphone, bouton d'appel visible" },
       ],
     },
     beforeAfter: [],
@@ -103,7 +103,7 @@ export const PROJECTS = [
     summary:
       "Le passage d'une activité de nettoyage chez les particuliers à une offre B2B : quatorze pages, une par prestation, pensées pour être trouvées une par une.",
     cover: {
-      src: '/images/projets/beret-nettoyeur/desktop-accueil.webp',
+      src: '/images/projets/beret-nettoyeur/desktop-accueil.webp', w: 1440, h: 900,
       alt: "Page d'accueil de la maquette Le Béret Nettoyeur",
     },
     context: [
@@ -123,14 +123,14 @@ export const PROJECTS = [
     ],
     visuals: {
       desktop: [
-        { src: '/images/projets/beret-nettoyeur/desktop-accueil.webp', alt: "Accueil de la maquette : titre, réassurance et comparateur avant/après", caption: "L'accueil annonce la zone couverte dès le titre — c'est la première question d'un gestionnaire de site." },
-        { src: '/images/projets/beret-nettoyeur/detail-avant-apres.webp', alt: 'Section « Avant / Après : nos interventions » avec des photos de chantiers réels', caption: "Des photos réelles, situées et datées — pas des images d'illustration." },
-        { src: '/images/projets/beret-nettoyeur/detail-prestations.webp', alt: 'Section « Nos prestations pour les entreprises »', caption: 'Chaque prestation ouvre sur sa propre page : c\u2019est ce qui la rend trouvable seule.' },
-        { src: '/images/projets/beret-nettoyeur/detail-zone.webp', alt: "Section « Notre zone d'intervention »", caption: "La zone couverte, commune par commune : la moitié du référencement local se joue là." },
-        { src: '/images/projets/beret-nettoyeur/detail-devis.webp', alt: 'Section « Demandez votre devis gratuit »', caption: 'Le formulaire de devis, terminus de tout le parcours.' },
+        { src: '/images/projets/beret-nettoyeur/desktop-accueil.webp', w: 1440, h: 900, alt: "Accueil de la maquette : titre, réassurance et comparateur avant/après", caption: "L'accueil annonce la zone couverte dès le titre — c'est la première question d'un gestionnaire de site." },
+        { src: '/images/projets/beret-nettoyeur/detail-avant-apres.webp', w: 1280, h: 877, alt: 'Section « Avant / Après : nos interventions » avec des photos de chantiers réels', caption: "Des photos réelles, situées et datées — pas des images d'illustration." },
+        { src: '/images/projets/beret-nettoyeur/detail-prestations.webp', w: 1280, h: 872, alt: 'Section « Nos prestations pour les entreprises »', caption: 'Chaque prestation ouvre sur sa propre page : c\u2019est ce qui la rend trouvable seule.' },
+        { src: '/images/projets/beret-nettoyeur/detail-zone.webp', w: 1280, h: 932, alt: "Section « Notre zone d'intervention »", caption: "La zone couverte, commune par commune : la moitié du référencement local se joue là." },
+        { src: '/images/projets/beret-nettoyeur/detail-devis.webp', w: 1280, h: 872, alt: 'Section « Demandez votre devis gratuit »', caption: 'Le formulaire de devis, terminus de tout le parcours.' },
       ],
       mobile: [
-        { src: '/images/projets/beret-nettoyeur/mobile-accueil.webp', alt: 'Accueil de la maquette sur téléphone' },
+        { src: '/images/projets/beret-nettoyeur/mobile-accueil.webp', w: 726, h: 1570, alt: 'Accueil de la maquette sur téléphone' },
       ],
     },
     beforeAfter: [],
@@ -171,7 +171,7 @@ export const PROJECTS = [
     summary:
       "Cinq restaurants sous une seule marque : une refonte qui laisse choisir son adresse sans jamais quitter l'univers de l'enseigne.",
     cover: {
-      src: '/images/projets/ile-o-crepes/desktop-accueil.webp',
+      src: '/images/projets/ile-o-crepes/desktop-accueil.webp', w: 1440, h: 900,
       alt: "Page d'accueil de la maquette L'Île O' Crêpes",
     },
     context: [
@@ -190,14 +190,14 @@ export const PROJECTS = [
     ],
     visuals: {
       desktop: [
-        { src: '/images/projets/ile-o-crepes/desktop-accueil.webp', alt: "Accueil de la maquette L'Île O' Crêpes", caption: "Les deux actions utiles — réserver, commander — sont au même niveau, avant tout défilement." },
-        { src: '/images/projets/ile-o-crepes/detail-coups-de-coeur.webp', alt: 'Section « Nos coups de cœur » présentant les recettes', caption: "Chaque recette porte un nom d'île : le fil conducteur de toute la carte." },
-        { src: '/images/projets/ile-o-crepes/detail-adresses.webp', alt: 'Section « Cinq adresses en Île-de-France »', caption: 'Les cinq restaurants, chacun avec sa façade et son adresse.' },
-        { src: '/images/projets/ile-o-crepes/detail-bar.webp', alt: 'Section consacrée au bar et aux rhums arrangés', caption: 'Le bar a sa propre entrée : une deuxième raison de venir.' },
-        { src: '/images/projets/ile-o-crepes/detail-decor.webp', alt: 'Section « Un décor de vacances, toute l\u2019année »', caption: "La galerie installe l'ambiance que la carte seule ne raconte pas." },
+        { src: '/images/projets/ile-o-crepes/desktop-accueil.webp', w: 1440, h: 900, alt: "Accueil de la maquette L'Île O' Crêpes", caption: "Les deux actions utiles — réserver, commander — sont au même niveau, avant tout défilement." },
+        { src: '/images/projets/ile-o-crepes/detail-coups-de-coeur.webp', w: 1280, h: 786, alt: 'Section « Nos coups de cœur » présentant les recettes', caption: "Chaque recette porte un nom d'île : le fil conducteur de toute la carte." },
+        { src: '/images/projets/ile-o-crepes/detail-adresses.webp', w: 1280, h: 535, alt: 'Section « Cinq adresses en Île-de-France »', caption: 'Les cinq restaurants, chacun avec sa façade et son adresse.' },
+        { src: '/images/projets/ile-o-crepes/detail-bar.webp', w: 1280, h: 500, alt: 'Section consacrée au bar et aux rhums arrangés', caption: 'Le bar a sa propre entrée : une deuxième raison de venir.' },
+        { src: '/images/projets/ile-o-crepes/detail-decor.webp', w: 1280, h: 780, alt: 'Section « Un décor de vacances, toute l\u2019année »', caption: "La galerie installe l'ambiance que la carte seule ne raconte pas." },
       ],
       mobile: [
-        { src: '/images/projets/ile-o-crepes/mobile-accueil.webp', alt: "Accueil de la maquette sur téléphone" },
+        { src: '/images/projets/ile-o-crepes/mobile-accueil.webp', w: 780, h: 1688, alt: "Accueil de la maquette sur téléphone" },
       ],
     },
     beforeAfter: [],
@@ -231,7 +231,7 @@ export const PROJECTS = [
     summary:
       "Un site en mode sombre natif, bilingue, développé sur mesure — l'exercice le plus technique du portfolio.",
     cover: {
-      src: '/images/projets/aurae-paris/desktop-accueil.webp',
+      src: '/images/projets/aurae-paris/desktop-accueil.webp', w: 1440, h: 900,
       alt: "Page d'accueil de la maquette Auraé Paris",
     },
     context: [
@@ -257,10 +257,10 @@ export const PROJECTS = [
         Les sections basses demandent une capture manuelle.
       */
       desktop: [
-        { src: '/images/projets/aurae-paris/desktop-accueil.webp', alt: "Page d'accueil de la maquette Auraé Paris, mode sombre", caption: "Le produit occupe l'écran ; l'interface se retire." },
+        { src: '/images/projets/aurae-paris/desktop-accueil.webp', w: 1440, h: 900, alt: "Page d'accueil de la maquette Auraé Paris, mode sombre", caption: "Le produit occupe l'écran ; l'interface se retire." },
       ],
       mobile: [
-        { src: '/images/projets/aurae-paris/mobile-accueil.webp', alt: 'Auraé Paris sur téléphone' },
+        { src: '/images/projets/aurae-paris/mobile-accueil.webp', w: 780, h: 1688, alt: 'Auraé Paris sur téléphone' },
       ],
     },
     beforeAfter: [],
@@ -293,7 +293,7 @@ export const PROJECTS = [
     summary:
       "Une recherche personnelle : tenir une page d'accueil avec un titre, une image et deux lignes de texte.",
     cover: {
-      src: '/images/projets/maison-verane/cover.webp',
+      src: '/images/projets/maison-verane/cover.webp', w: 1440, h: 900,
       alt: "Page d'accueil de la maquette Maison Vérane",
     },
     context: [
@@ -309,7 +309,7 @@ export const PROJECTS = [
     ],
     visuals: {
       desktop: [
-        { src: '/images/projets/maison-verane/cover.webp', alt: "Page d'accueil de la maquette Maison Vérane", caption: "Le titre traverse l'écran ; l'image s'y superpose au lieu de l'illustrer." },
+        { src: '/images/projets/maison-verane/cover.webp', w: 1440, h: 900, alt: "Page d'accueil de la maquette Maison Vérane", caption: "Le titre traverse l'écran ; l'image s'y superpose au lieu de l'illustrer." },
       ],
       mobile: [],
     },

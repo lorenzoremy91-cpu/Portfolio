@@ -60,11 +60,11 @@ function Block({ eyebrow, title, children }) {
   des visuels). Sur un vrai téléphone, montrer une capture de téléphone
   dans un petit cadre de 178 px était absurde : l'écran EST déjà le cadre.
 */
-function Phone({ src, alt }) {
+function Phone({ src, alt, w, h }) {
   return (
     <figure className="w-[260px] shrink-0">
       <div className="overflow-hidden rounded-[2rem] border-[7px] border-ink/85 bg-ink/85 shadow-[0_28px_70px_-30px_rgba(16,16,16,0.6)]">
-        <img src={src} alt={alt} loading="lazy" decoding="async" className="block h-full w-full" />
+        <img src={src} alt={alt} width={w} height={h} loading="lazy" decoding="async" className="block h-auto w-full" />
       </div>
     </figure>
   )
@@ -165,12 +165,22 @@ export default function CaseStudy() {
             <figure className="mt-14 overflow-hidden rounded-xl bg-stone-soft shadow-[0_30px_70px_-40px_rgba(16,16,16,0.45)]">
               <picture>
                 {phoneShot && <source media="(max-width: 767px)" srcSet={phoneShot.src} />}
+                {/*
+                  width/height SONT OBLIGATOIRES ICI. Sans eux, une image en
+                  chargement différé occupe zéro pixel tant qu'elle n'est pas
+                  arrivée : mesuré sur le site en ligne, la page grandissait de
+                  950 px pendant qu'on la parcourait, et le texte sautait sous
+                  le doigt. Déclarer le rapport d'image réserve la place à
+                  l'avance — plus aucun décalage.
+                */}
                 <img
                   src={cover.src}
                   alt={cover.alt}
+                  width={cover.w}
+                  height={cover.h}
                   fetchPriority="high"
                   decoding="async"
-                  className="mx-auto block w-full"
+                  className="mx-auto block h-auto w-full"
                 />
               </picture>
             </figure>
@@ -221,7 +231,7 @@ export default function CaseStudy() {
                 {[...visuals.mobile.slice(1), ...galleryDesktop].map((v, i) => (
                   <figure key={i}>
                     <div className="overflow-hidden rounded-xl bg-stone-soft shadow-[0_24px_60px_-34px_rgba(16,16,16,0.5)]">
-                      <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block w-full" />
+                      <img src={v.src} alt={v.alt} width={v.w} height={v.h} loading="lazy" decoding="async" className="block h-auto w-full" />
                     </div>
                     {v.caption && (
                       <figcaption className="mt-3 text-sm text-ink/60">{v.caption}</figcaption>
@@ -236,7 +246,7 @@ export default function CaseStudy() {
                   {visuals.desktop.slice(0, 2).map((v, i) => (
                     <figure key={i}>
                       <div className="overflow-hidden rounded-xl bg-stone-soft">
-                        <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block w-full" />
+                        <img src={v.src} alt={v.alt} width={v.w} height={v.h} loading="lazy" decoding="async" className="block h-auto w-full" />
                       </div>
                     </figure>
                   ))}
@@ -250,7 +260,7 @@ export default function CaseStudy() {
                   {galleryDesktop.map((v, i) => (
                     <figure key={i}>
                       <div className="overflow-hidden rounded-xl bg-stone-soft shadow-[0_30px_70px_-40px_rgba(16,16,16,0.4)]">
-                        <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block w-full" />
+                        <img src={v.src} alt={v.alt} width={v.w} height={v.h} loading="lazy" decoding="async" className="block h-auto w-full" />
                       </div>
                       {v.caption && (
                         <figcaption className="mt-3 text-sm text-ink/60">{v.caption}</figcaption>
@@ -262,7 +272,7 @@ export default function CaseStudy() {
                 {visuals.mobile.length > 0 && (
                   <div className="mt-16 flex flex-wrap justify-center gap-8">
                     {visuals.mobile.map((v, i) => (
-                      <Phone key={i} src={v.src} alt={v.alt} />
+                      <Phone key={i} src={v.src} alt={v.alt} w={v.w} h={v.h} />
                     ))}
                   </div>
                 )}
@@ -283,7 +293,7 @@ export default function CaseStudy() {
                             {lab}
                           </figcaption>
                           <div className="overflow-hidden rounded-lg bg-stone-soft">
-                            <img src={img.src} alt={img.alt} loading="lazy" decoding="async" className="block h-full w-full" />
+                            <img src={img.src} alt={img.alt} loading="lazy" decoding="async" className="block h-auto w-full" />
                           </div>
                         </figure>
                       ))}
