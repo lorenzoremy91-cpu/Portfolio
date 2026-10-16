@@ -16,3 +16,6 @@ studio/.sanity
 .env
 .env.local
 cesure-hostinger.zip
+
+# Sources vidéo non compressées (sauvegarde locale avant recompression)
+.media-src/

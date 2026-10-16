@@ -9,6 +9,24 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 const AVATAR_VIDEO = '/videos/figurinet-cartoon.mp4'
 
 /*
+  Même logique que dans Hero (voir le commentaire détaillé là-bas) : la
+  variante 768 px pour les écrans étroits, la pleine résolution ailleurs.
+  Les deux fichiers restent tout-intra, et la première image de celui-ci
+  reste la dernière image du plateau de la page 1 — soudure vérifiée après
+  ré-encodage, identique au bit (e4c394 / e3c493).
+
+  L'avatar n'a pas de variante : il est dessiné sur un canvas plafonné à
+  640 px de large, donc le fichier 640 px EST déjà la bonne taille.
+*/
+const STORY_SMALL = window.matchMedia('(max-width: 767px)').matches
+const STORY_VIDEO = STORY_SMALL
+  ? '/videos/background-stem-pan-mobile.mp4'
+  : '/videos/background-stem-pan.mp4'
+const STORY_POSTER = STORY_SMALL
+  ? '/videos/poster-story-mobile.webp'
+  : '/videos/poster-story.webp'
+
+/*
   The three USPs — one line each, scannable in two seconds. The card layout
   they feed (see the grid in the JSX) does the selling; these stay short on
   purpose.
@@ -567,8 +585,8 @@ export default function Story() {
           />
           <video
             ref={bgVideoRef}
-            src="/videos/background-stem-pan.mp4"
-            poster="/videos/poster-story.jpg"
+            src={STORY_VIDEO}
+            poster={STORY_POSTER}
             muted
             playsInline
             preload="metadata"

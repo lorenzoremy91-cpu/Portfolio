@@ -119,7 +119,33 @@ const TITLE = TITLE_LINES.join(' ')
 // petals fly off over the video's 5s — playback is scrubbed by scroll.
 // This cut ends on warm golden-cream light (~#ddc093 average) — the Story
 // section's background gradient picks up exactly that tone.
-const BACKGROUND_VIDEO = '/videos/background-daisy.mp4'
+/*
+  DEUX ENCODAGES, choisis une fois au chargement.
+
+  Les plateaux sont du H.264 TOUT-INTRA (chaque image est une image-clé) :
+  c'est ce qui rend le scrub instantané, puisque atteindre une image
+  n'oblige pas à décoder celles qui précèdent. Toute recompression doit donc
+  passer -g 1 ; un GOP long diviserait le poids mais rendrait chaque
+  déplacement du curseur dépendant de l'image-clé précédente — la saccade
+  reviendrait par la porte de derrière.
+
+  À CRF 28, le SSIM mesuré contre la source est de 0,994 (différence
+  invisible) pour 47 % d'octets en moins. La variante 768 px sert les écrans
+  étroits, où la vidéo s'affiche à 185vw, soit 721 px sur un écran de 390 :
+  servir 1280 px là-bas, c'était télécharger près du double de pixels pour
+  rien.
+
+  NARROW_MQ seul, et non MOBILE_NO_PIN : une tablette prend la classe
+  md:w-[160vw], donc 1229 px à l'écran — elle a besoin du fichier pleine
+  résolution. MOBILE_NO_PIN l'aurait rangée avec les téléphones.
+*/
+const SMALL_SCREEN = NARROW_MQ.matches
+const BACKGROUND_VIDEO = SMALL_SCREEN
+  ? '/videos/background-daisy-mobile.mp4'
+  : '/videos/background-daisy.mp4'
+const HERO_POSTER = SMALL_SCREEN
+  ? '/videos/poster-hero-mobile.webp'
+  : '/videos/poster-hero.webp'
 
 /*
   Image-trail pool. Cards are invisible until the cursor moves; they spawn in
@@ -817,7 +843,7 @@ export default function Hero() {
           <video
             ref={bgVideoRef}
             src={BACKGROUND_VIDEO}
-            poster="/videos/poster-hero.jpg"
+            poster={HERO_POSTER}
             muted
             playsInline
             preload="auto"
