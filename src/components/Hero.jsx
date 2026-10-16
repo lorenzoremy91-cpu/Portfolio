@@ -24,9 +24,13 @@ ScrollTrigger.config({ ignoreMobileResize: true })
 ScrollTrigger.defaults({ pinType: 'transform' })
 
 /*
-  Scrolling is NATIVE everywhere — normalizeScroll was tried for the
-  pin-entry jolt and proved erratic on real iOS (bounces, locked touch,
-  uncontrolled jumps), so it must never come back.
+  Scrolling is NATIVE on every pointing device EXCEPT coarse pointers.
+  normalizeScroll was tried for the pin-entry jolt, removed as erratic on
+  real iOS (bounces, locked touch, uncontrolled jumps) in 01d0dcf — which is
+  where this banner's old "must never come back" came from — then re-added
+  the next day in 4be6bd7, which left the banner contradicting the code for
+  good. The code below is now the truth: coarse pointers only, never a
+  merely narrow window. See the gate near normalizeScroll for the detail.
 
   NO PIN ON MOBILE (<768px): Safari's address-bar resize during the first
   scroll gesture disturbs GSAP pinning (jump/lock). On touch-mobile the hero
@@ -376,15 +380,34 @@ export default function Hero() {
         p=1 still lands on the closing frame the weld depends on.
         Phones keep their existing values byte-for-byte.
       */
+      /*
+        THE SNAPPING IS NOW UNCONDITIONAL — measured, not guessed.
+
+        The mobile branch used to skip the frame grid and run a 1/60 s
+        epsilon, on the theory that a finer epsilon meant "no dead zone
+        before the first petal lifts". Instrumenting currentTime through a
+        slow scroll across the whole flight proved the cost of that theory:
+          • 239 currentTime writes, 239 'seeked' round-trips,
+          • but only 121 distinct frames reached — the file only HAS 121,
+          • i.e. 49% of the seeks decoded the frame already on screen.
+        Those wasted decodes queue behind the useful ones and come back
+        late. That is the judder on the daisy between page 1 and page 2.
+
+        Snapping loses NOTHING visually: a 24 fps file cannot show an
+        intermediate frame, so the only thing the fine epsilon bought was
+        duplicate work. The "dead zone" worry was about the epsilon, not
+        the grid — and one frame is 785/121 ≈ 6.5 px of scroll here, so the
+        first petal still lifts within the first few pixels of a gesture.
+        Half a frame as the epsilon lets every genuine one-frame move
+        through while sub-frame jitter issues nothing at all.
+      */
       const FPS = 24
-      const seekEps = MOBILE_NO_PIN ? 1 / 60 : 1 / (FPS * 2)
+      const seekEps = 1 / (FPS * 2)
       const applySeek = () => {
         const video = bgVideoRef.current
         if (!video || !video.duration) return
         const raw = proxy.p * video.duration
-        const target = MOBILE_NO_PIN
-          ? raw
-          : Math.min(Math.round(raw * FPS) / FPS, video.duration)
+        const target = Math.min(Math.round(raw * FPS) / FPS, video.duration)
         if (video.seeking) {
           pendingSeek = target
         } else if (Math.abs(video.currentTime - target) > seekEps) {
@@ -581,7 +604,30 @@ export default function Hero() {
         and felt erratic, so `?nonormalize` in the URL turns it off without a
         redeploy if it misbehaves again on a specific device.
       */
-      if (MOBILE_NO_PIN && !location.search.includes('nonormalize')) {
+      /*
+        COARSE_MQ GATE ADDED. MOBILE_NO_PIN is deliberately wide — narrow
+        OR coarse OR no-hover — because anything that might be a phone must
+        take the no-pin path. But normalizeScroll is a different question:
+        it hands wheel/touch scrolling to GSAP's main-thread implementation.
+        Verified in the browser at a 438 px window with a mouse:
+        ScrollTrigger.normalizeScroll() returned true while isTouch was 0 —
+        so merely narrowing a desktop window handed the mouse wheel to
+        GSAP, which is precisely the "erratic scroll" this flag is known
+        for. A narrow window is not a touch device; only a coarse pointer
+        is.
+
+        NOTE for the next reader: the banner at the top of this file states
+        normalizeScroll "must never come back" (commit 01d0dcf, which
+        removed it), yet 4be6bd7 re-added it the next day and left that
+        banner stranded. This gate fixes the demonstrable half of the
+        contradiction without retuning real iOS, which is settled. Removing
+        it outright on phones too is a judgement call left to the owner.
+      */
+      if (
+        COARSE_MQ.matches &&
+        MOBILE_NO_PIN &&
+        !location.search.includes('nonormalize')
+      ) {
         ScrollTrigger.normalizeScroll(true)
       }
 

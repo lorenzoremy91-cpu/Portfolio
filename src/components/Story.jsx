@@ -123,8 +123,32 @@ export default function Story() {
         primeVideo(bgVideoRef.current)
         primeVideo(avatarRef.current)
       }
+      /*
+        LEAD TIME WAS EXACTLY ZERO — measured in the live page.
+
+        This trigger used to fire at scrollY === innerHeight. But the Story
+        section's top edge enters the viewport at
+        storyTop − innerHeight, and storyTop is 2 × innerHeight (hero
+        section + spacer on phones, pinned hero + hold on desktop). Both
+        numbers are therefore the SAME number: 785 and 785 on the phone
+        layout, 900 and 900 on desktop. The 5.7 MB of page-2 video
+        (background-stem-pan 2.6 MB + figurinet-cartoon 3.1 MB) began
+        downloading at the exact pixel the section became visible.
+
+        On a warm cache that is invisible. On a genuine first visit it is
+        the reported bug: the welded background shows its poster (or the
+        bare gradient) and the avatar canvas stays empty while the seam is
+        already on screen — several seconds of it on a real mobile
+        connection.
+
+        Firing at a quarter of a viewport hands back three quarters of the
+        petal flight as lead time, and keeps the hard-won guarantee that
+        nothing from page 2 competes with intro.mp4: scrolling is LOCKED
+        for the whole intro, so this trigger structurally cannot fire
+        before the intro has ended.
+      */
       ScrollTrigger.create({
-        start: () => window.innerHeight,
+        start: () => window.innerHeight * 0.25,
         once: true,
         onEnter: upgradeStoryMedia,
       })
