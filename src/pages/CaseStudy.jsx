@@ -55,11 +55,15 @@ function Block({ eyebrow, title, children }) {
   )
 }
 
-/* Cadre de téléphone : rappelle que la conception part du mobile. */
+/*
+  Cadre de téléphone — affiché UNIQUEMENT sur ordinateur (voir la section
+  des visuels). Sur un vrai téléphone, montrer une capture de téléphone
+  dans un petit cadre de 178 px était absurde : l'écran EST déjà le cadre.
+*/
 function Phone({ src, alt }) {
   return (
-    <figure className="w-[190px] shrink-0 md:w-[230px]">
-      <div className="overflow-hidden rounded-[1.75rem] border-[6px] border-ink/85 bg-ink/85 shadow-[0_24px_60px_-28px_rgba(16,16,16,0.55)]">
+    <figure className="w-[260px] shrink-0">
+      <div className="overflow-hidden rounded-[2rem] border-[7px] border-ink/85 bg-ink/85 shadow-[0_28px_70px_-30px_rgba(16,16,16,0.6)]">
         <img src={src} alt={alt} loading="lazy" decoding="async" className="block h-full w-full" />
       </div>
     </figure>
@@ -83,8 +87,19 @@ export default function CaseStudy() {
   const {
     title, status, badge, projectType, year, sector, place,
     liveUrl, liveLabel, summary, cover, context, did,
-    visuals, beforeAfter, deliverables, autonomy, results,
+    visuals, beforeAfter, deliverables, autonomy,
   } = project
+
+  /* Première capture téléphone : sert de couverture sous 768 px. */
+  const phoneShot = visuals.mobile[0] ?? null
+
+  /*
+    La couverture est presque toujours la première capture d'ordinateur.
+    La galerie ne doit donc pas la remontrer : on filtre par l'adresse du
+    fichier plutôt que par l'index, pour que ça tienne aussi si la
+    couverture vient d'ailleurs.
+  */
+  const galleryDesktop = visuals.desktop.filter((v) => v.src !== cover?.src)
 
   const meta = [
     ['Type de projet', projectType],
@@ -140,15 +155,24 @@ export default function CaseStudy() {
           </dl>
 
           {cover && (
-            <figure className="mt-14 overflow-hidden rounded-lg bg-stone-soft">
-              {/* Visuel d'ouverture : seule image chargée en priorité. */}
-              <img
-                src={cover.src}
-                alt={cover.alt}
-                fetchPriority="high"
-                decoding="async"
-                className="block h-full w-full"
-              />
+            /*
+              LA BONNE IMAGE POUR LE BON ÉCRAN. Une capture d'ordinateur de
+              1440 px réduite à 390 px sur un téléphone rend son texte 2,7
+              fois trop petit : ça ne se lit pas, ça fait une tache. <picture>
+              sert la capture téléphone sous 768 px — et comme le navigateur
+              ne télécharge QUE la source retenue, c'est aussi plus léger.
+            */
+            <figure className="mt-14 overflow-hidden rounded-xl bg-stone-soft shadow-[0_30px_70px_-40px_rgba(16,16,16,0.45)]">
+              <picture>
+                {phoneShot && <source media="(max-width: 767px)" srcSet={phoneShot.src} />}
+                <img
+                  src={cover.src}
+                  alt={cover.alt}
+                  fetchPriority="high"
+                  decoding="async"
+                  className="mx-auto block w-full"
+                />
+              </picture>
             </figure>
           )}
 
@@ -164,13 +188,40 @@ export default function CaseStudy() {
             <Bullets items={did} className="max-w-2xl" />
           </Block>
 
-          {visuals.desktop.length > 0 && (
+          {/*
+            UNE SEULE SECTION DE VISUELS, au lieu de deux.
+
+            Avant : « Les écrans » montrait les captures d'ordinateur à tous,
+            puis « L'écran qui compte » rajoutait des vignettes de 178 px.
+            Sur un téléphone, cela donnait des captures illisibles suivies de
+            miniatures encore plus petites — deux fois la même information,
+            mal rendue les deux fois.
+
+            Maintenant : chaque écran ne reçoit que ce qui s'y lit.
+              • téléphone — les captures téléphone, pleine largeur, à peu
+                près à l'échelle 1:1, donc nettes ;
+              • ordinateur — les captures ordinateur en grand, et les
+                captures téléphone dans un cadre, qui n'a de sens que là.
+          */}
+          {(visuals.desktop.length > 0 || visuals.mobile.length > 0) && (
             <Block eyebrow="Les écrans" title="Le projet en images">
-              <div className="space-y-14">
-                {visuals.desktop.map((v, i) => (
+              {/*
+                TÉLÉPHONE. On saute la première capture téléphone : elle sert
+                déjà de couverture juste au-dessus.
+
+                Les DÉTAILS DE SECTION, eux, sont montrés ici AUSSI. Ils
+                étaient réservés à l'ordinateur, et un visiteur sur téléphone
+                ne voyait donc qu'une seule image de tout le projet. Ce sont
+                des découpes de section — un titre, des photos, une grille —
+                et non des pages entières réduites : leur contenu reste
+                lisible à 342 px, parce qu'on y regarde une composition, pas
+                un paragraphe.
+              */}
+              <div className="space-y-10 md:hidden">
+                {[...visuals.mobile.slice(1), ...galleryDesktop].map((v, i) => (
                   <figure key={i}>
-                    <div className="overflow-hidden rounded-lg bg-stone-soft">
-                      <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block h-full w-full" />
+                    <div className="overflow-hidden rounded-xl bg-stone-soft shadow-[0_24px_60px_-34px_rgba(16,16,16,0.5)]">
+                      <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block w-full" />
                     </div>
                     {v.caption && (
                       <figcaption className="mt-3 text-sm text-ink/60">{v.caption}</figcaption>
@@ -178,15 +229,43 @@ export default function CaseStudy() {
                   </figure>
                 ))}
               </div>
-            </Block>
-          )}
+              {/* Repli : un projet sans capture téléphone montre quand même
+                  quelque chose plutôt qu'un vide. */}
+              {visuals.mobile.length === 0 && visuals.desktop.length > 0 && (
+                <div className="space-y-10 md:hidden">
+                  {visuals.desktop.slice(0, 2).map((v, i) => (
+                    <figure key={i}>
+                      <div className="overflow-hidden rounded-xl bg-stone-soft">
+                        <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block w-full" />
+                      </div>
+                    </figure>
+                  ))}
+                </div>
+              )}
 
-          {visuals.mobile.length > 0 && (
-            <Block eyebrow="Sur téléphone" title="L'écran qui compte">
-              <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 md:mx-0 md:px-0">
-                {visuals.mobile.map((v, i) => (
-                  <Phone key={i} src={v.src} alt={v.alt} />
-                ))}
+              {/* ORDINATEUR */}
+              <div className="hidden md:block">
+                {galleryDesktop.length > 0 && (
+                <div className="space-y-14">
+                  {galleryDesktop.map((v, i) => (
+                    <figure key={i}>
+                      <div className="overflow-hidden rounded-xl bg-stone-soft shadow-[0_30px_70px_-40px_rgba(16,16,16,0.4)]">
+                        <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block w-full" />
+                      </div>
+                      {v.caption && (
+                        <figcaption className="mt-3 text-sm text-ink/60">{v.caption}</figcaption>
+                      )}
+                    </figure>
+                  ))}
+                </div>
+                )}
+                {visuals.mobile.length > 0 && (
+                  <div className="mt-16 flex flex-wrap justify-center gap-8">
+                    {visuals.mobile.map((v, i) => (
+                      <Phone key={i} src={v.src} alt={v.alt} />
+                    ))}
+                  </div>
+                )}
               </div>
             </Block>
           )}
@@ -234,12 +313,6 @@ export default function CaseStudy() {
                   </div>
                 )}
               </div>
-            </Block>
-          )}
-
-          {results.length > 0 && (
-            <Block eyebrow="Résultats" title="Ce que ça a produit">
-              <Bullets items={results} className="max-w-2xl" />
             </Block>
           )}
 

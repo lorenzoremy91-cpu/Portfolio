@@ -124,6 +124,10 @@ export const PROJECTS = [
     visuals: {
       desktop: [
         { src: '/images/projets/beret-nettoyeur/desktop-accueil.webp', alt: "Accueil de la maquette : titre, réassurance et comparateur avant/après", caption: "L'accueil annonce la zone couverte dès le titre — c'est la première question d'un gestionnaire de site." },
+        { src: '/images/projets/beret-nettoyeur/detail-avant-apres.webp', alt: 'Section « Avant / Après : nos interventions » avec des photos de chantiers réels', caption: "Des photos réelles, situées et datées — pas des images d'illustration." },
+        { src: '/images/projets/beret-nettoyeur/detail-prestations.webp', alt: 'Section « Nos prestations pour les entreprises »', caption: 'Chaque prestation ouvre sur sa propre page : c\u2019est ce qui la rend trouvable seule.' },
+        { src: '/images/projets/beret-nettoyeur/detail-zone.webp', alt: "Section « Notre zone d'intervention »", caption: "La zone couverte, commune par commune : la moitié du référencement local se joue là." },
+        { src: '/images/projets/beret-nettoyeur/detail-devis.webp', alt: 'Section « Demandez votre devis gratuit »', caption: 'Le formulaire de devis, terminus de tout le parcours.' },
       ],
       mobile: [
         { src: '/images/projets/beret-nettoyeur/mobile-accueil.webp', alt: 'Accueil de la maquette sur téléphone' },
@@ -150,11 +154,17 @@ export const PROJECTS = [
     slug: 'ile-o-crepes',
     title: "L'Île O' Crêpes",
     status: 'maquette',
-    badge: 'Crêperie · Cinq adresses en Essonne · 2026',
+    badge: 'Crêperie · Cinq adresses en Île-de-France · 2026',
     projectType: 'Maquette de refonte — site multi-établissements',
     year: 2026,
     sector: 'Restauration',
-    place: 'Bures-sur-Yvette, Igny, Les Ulis, Orsay et Palaiseau',
+    /*
+      CORRIGÉ. J'avais d'abord relevé ces communes par une recherche dans le
+      HTML, et j'étais tombé sur une liste de villes voisines (référencement
+      local), pas sur les restaurants. Les cinq adresses réelles sont lues
+      sur la section « Nos escales » de la maquette elle-même.
+    */
+    place: 'Gif-sur-Yvette, Voisins-le-Bretonneux, Boulogne-Billancourt, Marcoussis et Igny',
     liveUrl: null,
     liveLabel: null,
     featured: false,
@@ -165,7 +175,7 @@ export const PROJECTS = [
       alt: "Page d'accueil de la maquette L'Île O' Crêpes",
     },
     context: [
-      "L'Île O' Crêpes est une crêperie implantée sur cinq adresses en Essonne : Bures-sur-Yvette, Igny, Les Ulis, Orsay et Palaiseau.",
+      "L'Île O' Crêpes est une crêperie implantée sur cinq adresses en Île-de-France : Gif-sur-Yvette, Voisins-le-Bretonneux, Boulogne-Billancourt, Marcoussis et Igny.",
       "Un site multi-établissements a un problème propre : le visiteur veut une adresse précise — horaires, terrasse, réservation — mais l'enseigne veut rester une seule marque et non cinq sites juxtaposés.",
       "La maquette tient les deux : un univers commun, et une page par restaurant accessible dès la navigation.",
     ],
@@ -181,6 +191,10 @@ export const PROJECTS = [
     visuals: {
       desktop: [
         { src: '/images/projets/ile-o-crepes/desktop-accueil.webp', alt: "Accueil de la maquette L'Île O' Crêpes", caption: "Les deux actions utiles — réserver, commander — sont au même niveau, avant tout défilement." },
+        { src: '/images/projets/ile-o-crepes/detail-coups-de-coeur.webp', alt: 'Section « Nos coups de cœur » présentant les recettes', caption: "Chaque recette porte un nom d'île : le fil conducteur de toute la carte." },
+        { src: '/images/projets/ile-o-crepes/detail-adresses.webp', alt: 'Section « Cinq adresses en Île-de-France »', caption: 'Les cinq restaurants, chacun avec sa façade et son adresse.' },
+        { src: '/images/projets/ile-o-crepes/detail-bar.webp', alt: 'Section consacrée au bar et aux rhums arrangés', caption: 'Le bar a sa propre entrée : une deuxième raison de venir.' },
+        { src: '/images/projets/ile-o-crepes/detail-decor.webp', alt: 'Section « Un décor de vacances, toute l\u2019année »', caption: "La galerie installe l'ambiance que la carte seule ne raconte pas." },
       ],
       mobile: [
         { src: '/images/projets/ile-o-crepes/mobile-accueil.webp', alt: "Accueil de la maquette sur téléphone" },
@@ -236,6 +250,12 @@ export const PROJECTS = [
       'Bilingue français / anglais, et parcours jusqu’à l’inscription en liste d’attente',
     ],
     visuals: {
+      /*
+        Un seul visuel d'ordinateur, et ce n'est pas un oubli : la page monte
+        ses panneaux à la demande et son hero se dé-zoome au défilement. Une
+        capture automatique n'en voit donc que le premier écran, figé zoomé.
+        Les sections basses demandent une capture manuelle.
+      */
       desktop: [
         { src: '/images/projets/aurae-paris/desktop-accueil.webp', alt: "Page d'accueil de la maquette Auraé Paris, mode sombre", caption: "Le produit occupe l'écran ; l'interface se retire." },
       ],

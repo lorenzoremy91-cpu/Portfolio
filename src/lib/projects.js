@@ -14,14 +14,45 @@ import { client, sanityEnabled, urlFor } from './sanity'
   quel nombre de projets reste composé, et changer la composition de tout le
   site est une modification à un seul endroit.
 */
+/*
+  LE RYTHME NE VAUT QUE SUR ORDINATEUR. Mesuré à 390 px : les cartes y sont
+  toutes en pleine largeur, et object-fit:cover découpait alors une BANDE
+  dans la capture — la carte mise en avant tombait à 342×147, soit un
+  bandeau pris au milieu d'une image de 1440×900, où l'on ne reconnaissait
+  plus rien du site.
+
+  Chaque format porte donc maintenant une base téléphone unique, 4/5, et le
+  rythme éditorial ne reprend qu'à partir de md.
+*/
+const MOBILE_RATIO = 'aspect-[4/5]'
+
+/*
+  UN SEUL FORMAT D'IMAGE SUR ORDINATEUR : 16/10.
+
+  Le rythme donnait quatre proportions différentes (4/3, 4/5, 16/9, 3/4).
+  Appliqué à des captures d'écran — qui sont TOUTES en 1440×900, soit
+  exactement 16/10 — cela découpait chaque vignette autrement : les cartes
+  en 4/5 et 3/4 perdaient près de la moitié de la largeur du site, et on ne
+  voyait plus la devanture mais une colonne prise au centre.
+
+  En calant les cartes sur le format natif des captures, AUCUNE n'est plus
+  rognée : chaque projet montre sa page d'accueil entière. La variation
+  éditoriale est conservée, mais portée par la LARGEUR des colonnes et les
+  décalages verticaux — ce qui fait respirer la grille sans jamais mutiler
+  les images.
+*/
+const DESKTOP_RATIO = 'md:aspect-[16/10]'
 const RHYTHM = [
-  { span: 'md:col-span-7', ratio: 'aspect-[4/3]' },
-  { span: 'md:col-span-5 md:mt-32', ratio: 'aspect-[4/5]' },
-  { span: 'md:col-span-7 md:col-start-6', ratio: 'aspect-[16/9]' },
-  { span: 'md:col-span-5 md:col-start-2 md:mt-16', ratio: 'aspect-[3/4]' },
+  { span: 'md:col-span-7', ratio: `${MOBILE_RATIO} ${DESKTOP_RATIO}` },
+  { span: 'md:col-span-5 md:mt-32', ratio: `${MOBILE_RATIO} ${DESKTOP_RATIO}` },
+  { span: 'md:col-span-7 md:col-start-6', ratio: `${MOBILE_RATIO} ${DESKTOP_RATIO}` },
+  { span: 'md:col-span-5 md:col-start-2 md:mt-16', ratio: `${MOBILE_RATIO} ${DESKTOP_RATIO}` },
 ]
 
-const FEATURED_LAYOUT = { span: 'md:col-span-12', ratio: 'aspect-[21/9]' }
+const FEATURED_LAYOUT = {
+  span: 'md:col-span-12',
+  ratio: `${MOBILE_RATIO} ${DESKTOP_RATIO}`,
+}
 
 export function layoutFor(index, featured) {
   return featured ? FEATURED_LAYOUT : RHYTHM[index % RHYTHM.length]

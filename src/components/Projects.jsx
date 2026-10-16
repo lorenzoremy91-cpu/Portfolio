@@ -21,27 +21,46 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
 */
 function ProjectCard({ project, index }) {
   const { title, projectType, year, slug, cover, featured, status } = project
+  const phoneShot = project.visuals?.mobile?.[0] ?? null
   const { span, ratio } = layoutFor(index, featured)
   return (
     <article data-project className={`group col-span-1 ${span}`}>
       <Link to={`/projets/${slug}`} className="block">
         <div className={`relative overflow-hidden bg-stone-soft ${ratio}`}>
-          <img
-            src={cover.src}
-            alt={cover.alt}
-            /* La première carte est souvent visible d'emblée après le vol
-               de pétales : elle ne doit pas arriver en retard. */
-            loading={index === 0 ? 'eager' : 'lazy'}
-            decoding="async"
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-          />
+          {/*
+            Deux corrections de cadrage, toutes deux mesurées :
+
+            • <picture> sert la capture TÉLÉPHONE sous 768 px. Une capture
+              d'ordinateur rognée en 4/5 ne montre qu'une colonne du centre ;
+              la capture téléphone, elle, est déjà au bon format.
+            • object-top, et non le centrage par défaut. Ce qui identifie un
+              site, c'est son en-tête et son titre — pas une tranche prise au
+              milieu de la page.
+          */}
+          <picture>
+            {phoneShot && <source media="(max-width: 767px)" srcSet={phoneShot.src} />}
+            <img
+              src={cover.src}
+              alt={cover.alt}
+              /* La première carte est souvent visible d'emblée après le vol
+                 de pétales : elle ne doit pas arriver en retard. */
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              className="h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            />
+          </picture>
           {/*
             Le statut est porté par la CARTE, pas seulement par la page
             projet : quelqu'un qui parcourt la grille sans cliquer ne doit
             jamais pouvoir prendre une maquette pour un site en service.
+
+            EN BAS À GAUCHE, et non en haut : en haut, la pastille se posait
+            pile sur le logo du site capturé — on lisait « EN LIGNE …e Door »
+            et « MAQUETTE …ret Nettoyeur ». Le bas de la capture est une zone
+            de contenu, bien plus sûre.
           */}
           <span
-            className={`absolute left-4 top-4 rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-widest backdrop-blur-sm ${
+            className={`absolute bottom-4 left-4 rounded-full px-3 py-1 shadow-sm text-[0.65rem] font-semibold uppercase tracking-widest backdrop-blur-sm ${
               status === 'en-ligne' ? 'bg-accent/95 text-ink' : 'bg-cream/85 text-ink/75'
             }`}
           >
