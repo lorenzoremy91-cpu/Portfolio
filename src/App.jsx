@@ -5,6 +5,8 @@ import DebugPanel from './components/DebugPanel.jsx'
 import Home from './pages/Home.jsx'
 import CaseStudy from './pages/CaseStudy.jsx'
 import NotFound from './pages/NotFound.jsx'
+import MentionsLegales from './pages/MentionsLegales.jsx'
+import Confidentialite from './pages/Confidentialite.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -34,6 +36,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/projets/:slug" element={<CaseStudy />} />
+        <Route path="/mentions-legales" element={<MentionsLegales />} />
+        <Route path="/confidentialite" element={<Confidentialite />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

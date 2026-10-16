@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
+import { CONTACT, mailto } from '../lib/identity.js'
 
 const LINKS = [
   { href: '#studio', label: 'À propos' },
@@ -276,10 +277,10 @@ export default function Navbar() {
             className="flex items-center justify-between text-xs uppercase tracking-widest text-ink/60"
           >
             <span>
-              Paris <span className="text-accent">—</span> {new Date().getFullYear()}
+              {CONTACT.city} <span className="text-accent">—</span> {new Date().getFullYear()}
             </span>
-            <a href="mailto:hello@cesure.studio" className="transition-colors hover:text-accent">
-              hello@cesure.studio
+            <a href={mailto} className="transition-colors hover:text-accent">
+              {CONTACT.email}
             </a>
           </div>
         </div>
