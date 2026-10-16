@@ -102,13 +102,21 @@ export default function Confidentialite() {
           professionnelle. Ces informations ne sont ni revendues, ni cédées, ni
           utilisées pour de la prospection.
         </p>
+        {/*
+          Durées alignées sur la recommandation de la CNIL (3 ans après le
+          dernier contact pour une prospection restée sans suite) et sur
+          l'article L123-22 du code de commerce (10 ans pour les pièces
+          comptables). Ce sont des standards défendables, pas une décision
+          arbitraire — mais ils restent modifiables.
+        */}
         <p>
-          <ToComplete>
-            durée de conservation à fixer. Un choix courant et défendable :
-            3 ans après le dernier échange pour une demande sans suite, et
-            10 ans pour les pièces comptables d'un projet facturé, comme
-            l'impose le code de commerce.
-          </ToComplete>
+          Concrètement : une demande restée sans suite est conservée{' '}
+          <strong className="font-medium text-ink">3 ans</strong> à compter du
+          dernier échange, conformément à la recommandation de la CNIL. Les
+          pièces comptables d'un projet facturé sont conservées{' '}
+          <strong className="font-medium text-ink">10 ans</strong>, durée imposée
+          par le code de commerce. Passé ces délais, les données sont
+          supprimées.
         </p>
       </Section>
 

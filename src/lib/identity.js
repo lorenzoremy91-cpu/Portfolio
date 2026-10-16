@@ -47,7 +47,9 @@ export const LEGAL = {
   publisher: 'Lorenzo Remy',
   host: {
     name: 'Vercel Inc.',
-    address: '440 N Barranca Ave #4133, Covina, CA 91723, États-Unis',
+    // Relevée le 16/10/2026 sur vercel.com/legal/privacy-policy, où Vercel
+    // écrit « Avenue » en toutes lettres. À revérifier si la page change.
+    address: '440 N Barranca Avenue #4133, Covina, CA 91723, États-Unis',
     url: 'https://vercel.com',
   },
 }

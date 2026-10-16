@@ -32,12 +32,12 @@ export default function MentionsLegales() {
           </dd>
           <dt className="text-xs uppercase tracking-widest text-ink/50">TVA</dt>
           <dd>
-            <ToComplete>
-              régime de TVA à préciser. Si vous relevez de la franchise en base,
-              la mention exacte est « TVA non applicable, article 293 B du CGI ».
-              Si vous êtes assujetti, il faut indiquer votre numéro de TVA
-              intracommunautaire.
-            </ToComplete>
+            {/*
+              Franchise en base confirmée. Aucun numéro de TVA
+              intracommunautaire n'a donc à figurer ici : en afficher un
+              serait une erreur, pas une précaution.
+            */}
+            TVA non applicable, article 293 B du Code général des impôts
           </dd>
         </dl>
       </Section>
@@ -60,13 +60,6 @@ export default function MentionsLegales() {
           >
             vercel.com
           </a>
-        </p>
-        <p>
-          <ToComplete>
-            adresse de l'hébergeur à confirmer sur vercel.com (page « Legal » ou
-            « Contact »). Celle indiquée ici est l'adresse figurant dans les
-            conditions générales de Vercel ; elle peut avoir changé.
-          </ToComplete>
         </p>
       </Section>
 

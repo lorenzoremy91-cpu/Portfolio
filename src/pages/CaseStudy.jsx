@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
-import { bySlug, KIND_LABEL } from '../content/projects.js'
+import { bySlug, STATUS_LABEL } from '../content/projects.js'
 import { CONTACT, mailto, telHref } from '../lib/identity.js'
 import NotFound from './NotFound.jsx'
 
@@ -81,7 +81,7 @@ export default function CaseStudy() {
   if (!project) return <NotFound />
 
   const {
-    title, kind, badge, projectType, year, sector, place,
+    title, status, badge, projectType, year, sector, place,
     liveUrl, liveLabel, summary, cover, context, did,
     visuals, beforeAfter, deliverables, autonomy, results,
   } = project
@@ -106,19 +106,19 @@ export default function CaseStudy() {
           </Link>
 
           {/*
-            Le statut d'abord, et toujours. Une proposition non retenue ne
-            doit jamais pouvoir se lire comme une référence acquise : c'est
-            une demande explicite du commanditaire de ce portfolio.
+            Le statut d'abord, et toujours. « En ligne » est une affirmation
+            que le visiteur peut vérifier en un clic ; une maquette doit donc
+            le dire, sans ambiguïté, avant même le titre du projet.
           */}
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <span
               className={`rounded-full px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-widest ${
-                kind === 'client'
+                status === 'en-ligne'
                   ? 'bg-accent text-ink'
                   : 'border border-ink/20 text-ink/70'
               }`}
             >
-              {KIND_LABEL[kind]}
+              {STATUS_LABEL[status]}
             </span>
             <span className="text-xs uppercase tracking-widest text-ink/50">{badge}</span>
           </div>
@@ -256,7 +256,9 @@ export default function CaseStudy() {
                   <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">→</span>
                 </a>
               ) : (
-                <span className="text-sm text-ink/60">Projet personnel — pas de site en ligne.</span>
+                <span className="text-sm text-ink/60">
+                  Maquette — ce projet n'a pas d'adresse publique.
+                </span>
               )}
               <p className="text-sm text-ink/70">
                 Un projet comparable ?{' '}

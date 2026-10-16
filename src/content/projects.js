@@ -2,143 +2,45 @@
   ── LES ÉTUDES DE CAS VIVENT ICI, EN CODE ───────────────────────────────────
 
   Pourquoi pas dans Sanity : le site est un SPA Vite sans rendu serveur. Un
-  contenu chargé depuis le CMS dans le navigateur arrive APRÈS le HTML, donc
-  Google reçoit une page vide — c'est exactement ce que mesurait le site en
-  ligne avant cette refonte : 2 041 octets, zéro texte visible. En plaçant le
-  contenu ici, il est compilé dans le HTML et devient indexable, sans aucun
-  coût réseau à l'affichage.
+  contenu chargé depuis le CMS dans le navigateur arrive APRÈS le HTML. En le
+  plaçant ici, il est compilé dans le bundle et la grille ne grandit plus
+  après que ScrollTrigger a mesuré la page.
 
   Trois règles tenues dans tout ce fichier :
 
-  1. AUCUNE INVENTION. Pas un client, pas un témoignage, pas un chiffre qui
-     ne soit pas vérifiable. Les faits sur Open The Door proviennent du site
-     livré lui-même, relu avant rédaction. Tout ce qui manque est un objet
+  1. AUCUNE INVENTION. Les faits proviennent des sites et maquettes
+     eux-mêmes, ouverts et relus avant rédaction. Ce qui manque est un objet
      { todo: … } rendu en surbrillance à l'écran, jamais une valeur
      plausible qui passerait pour vraie.
 
-  2. LE STATUT EST EXPLICITE. `kind` vaut 'client', 'proposition' ou
-     'concept', et la page l'affiche toujours. Une proposition non retenue ne
-     doit jamais pouvoir se lire comme une référence acquise.
+  2. LE STATUT EST EXPLICITE ET VÉRIFIABLE. `status` vaut 'en-ligne' ou
+     'maquette', et il est affiché sur la carte ET en tête de la page
+     projet. Un seul projet est en ligne : Open The Door. Tous les autres
+     sont des maquettes, et rien ne doit laisser croire le contraire.
 
-  3. LA MISE EN PAGE N'EST PAS ICI. Comme pour la grille, le contenu dit le
-     sens, le code décide du rendu.
+  3. LA MISE EN PAGE N'EST PAS ICI. Le contenu dit le sens, le code décide
+     du rendu.
 */
 
 /* Marqueur d'information manquante : visible, jamais silencieux. */
 export const todo = (text) => ({ todo: text })
 
 export const PROJECTS = [
-  // ───────────────────────────────────────────────────────────────────────
-  {
-    slug: 'club-omnisports-les-ulis',
-    title: 'Club Omnisports des Ulis',
-    kind: 'proposition',
-    /*
-      Libellé imposé par le commanditaire pressenti, au mot près. Le Club
-      n'est PAS un client : c'est une maquette proposée, et rien dans cette
-      page ne doit laisser entendre le contraire.
-    */
-    badge: 'Proposition de refonte · Club Omnisports des Ulis · 2026',
-    projectType: 'Refonte complète — maquette cliquable',
-    year: 2026,
-    sector: 'Association sportive',
-    place: 'Les Ulis, Essonne',
-    liveUrl: 'https://maquette-cou-ulis.netlify.app',
-    liveLabel: 'Parcourir la maquette',
-    featured: true,
-    summary:
-      "Une maquette cliquable de cinq pages pour rendre lisible, depuis un téléphone, une association de 27 sections et 20 lieux de pratique.",
-    cover: {
-      src: '/images/projets/cou-ulis/apres-accueil.webp',
-      alt: "Page d'accueil de la maquette proposée pour le Club Omnisports des Ulis",
-    },
-    context: [
-      "Le Club Omnisports des Ulis est une association créée en 1977 : 27 sections, 20 lieux de pratique, une Maison Sport-Santé, et ses 50 ans en 2027.",
-      "Son site actuel est riche — le contenu existe et il est sérieux — mais il est difficile à parcourir, en particulier depuis un téléphone, qui est pourtant l'écran d'un parent qui cherche un créneau un soir de semaine.",
-      "L'enjeu n'était donc pas d'ajouter de l'information, mais de rendre franchissable celle qui est déjà là : permettre à une famille de passer de « je cherche un sport » à « je sais où, quand et comment inscrire mon enfant » sans jamais se perdre.",
-    ],
-    did: [
-      "Cadrage du parcours réel d'une famille, de la recherche à l'inscription",
-      "Direction artistique dérivée du logo existant du club, sans le réinventer",
-      "Maquette cliquable de 5 pages : accueil, « Trouver mon sport », fiche Basketball, « S'inscrire », « Le club »",
-      "Filtres combinables par âge, envie, jour et lieu",
-      "Planning qui allume les créneaux correspondant à l'année de naissance saisie",
-      "Dossier d'inscription à cocher, qui mémorise les pièces déjà réunies",
-      "Frise historique de 1977 à 2027, préparée pour les 50 ans du club",
-      "Conception pensée d'abord pour le téléphone, puis élargie à l'ordinateur",
-      "Contrastes vérifiés et corps de texte porté à 17 px pour la lisibilité",
-    ],
-    visuals: {
-      desktop: [
-        { src: '/images/projets/cou-ulis/apres-accueil.webp', alt: "Page d'accueil : entrée directe vers la recherche de sport", caption: "L'accueil pose une seule question : quel sport, pour qui ?" },
-        { src: '/images/projets/cou-ulis/apres-catalogue.webp', alt: 'Page « Trouver mon sport » avec ses filtres par âge, envie, jour et lieu', caption: 'Les filtres se combinent : un enfant de 8 ans, le mercredi, près de chez soi.' },
-        { src: '/images/projets/cou-ulis/apres-fiche.webp', alt: 'Fiche Basketball : créneaux, lieux et conditions', caption: 'La fiche d’une section répond aux questions dans l’ordre où elles se posent.' },
-        { src: '/images/projets/cou-ulis/apres-inscription.webp', alt: "Page « S'inscrire » avec le dossier à cocher", caption: 'Le dossier retient ce qui est déjà prêt : on peut le quitter et y revenir.' },
-        { src: '/images/projets/cou-ulis/apres-club.webp', alt: 'Page « Le club » et sa frise de 1977 à 2027', caption: 'La frise installe les 50 ans du club comme un repère, pas comme une archive.' },
-      ],
-      mobile: [
-        { src: '/images/projets/cou-ulis/apres-m-accueil.webp', alt: "Accueil sur téléphone" },
-        { src: '/images/projets/cou-ulis/apres-m-catalogue.webp', alt: 'Recherche de sport sur téléphone' },
-        { src: '/images/projets/cou-ulis/apres-m-fiche.webp', alt: 'Fiche Basketball sur téléphone' },
-        { src: '/images/projets/cou-ulis/apres-m-inscription.webp', alt: 'Dossier d’inscription sur téléphone' },
-      ],
-    },
-    /*
-      Légendes NEUTRES, c'est une demande explicite : on montre une
-      proposition, on ne dénigre pas le travail existant. Les deux paires
-      comparent des pages équivalentes, pas une page choisie pour flatter.
-    */
-    beforeAfter: [
-      {
-        label: 'La fiche d’une section',
-        before: { src: '/images/projets/cou-ulis/avant-fiche.webp', alt: 'Page Basketball du site actuel' },
-        after: { src: '/images/projets/cou-ulis/apres-fiche.webp', alt: 'Fiche Basketball proposée' },
-        note: "Mêmes informations, hiérarchisées par ordre d'usage : quel âge, quel créneau, quel lieu, puis comment s'inscrire.",
-      },
-      {
-        label: 'Trouver un sport',
-        before: { src: '/images/projets/cou-ulis/avant-catalogue.webp', alt: 'Page « Sports selon l’âge » du site actuel' },
-        after: { src: '/images/projets/cou-ulis/apres-catalogue.webp', alt: 'Page « Trouver mon sport » proposée' },
-        note: 'Le choix par âge devient un filtre combinable avec le jour et le lieu.',
-      },
-      {
-        label: 'Sur téléphone',
-        before: { src: '/images/projets/cou-ulis/avant-m-fiche.webp', alt: 'Page Basketball actuelle sur téléphone' },
-        after: { src: '/images/projets/cou-ulis/apres-m-fiche.webp', alt: 'Fiche Basketball proposée sur téléphone' },
-        note: "C'est l'écran sur lequel un parent cherche un créneau un soir de semaine.",
-      },
-    ],
-    deliverables: [
-      'Maquette cliquable en ligne, parcourable sans installation',
-      'Les 5 pages dessinées dans leurs états ordinateur et téléphone',
-      'Direction artistique dérivée du logo du club',
-      'Les composants réutilisables pour les 27 sections',
-    ],
-    autonomy: [
-      "Ajouter ou modifier une section sans toucher à la mise en page",
-      "Mettre à jour les créneaux d'un planning depuis une interface",
-      'Publier une actualité ou un document pour les familles',
-    ],
-    results: [
-      todo("Cette maquette est une proposition : aucun résultat ne peut être mesuré tant qu'elle n'est pas en service. Les chiffres viendront après la mise en ligne."),
-    ],
-  },
-
-  // ───────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────── 1. LE SEUL EN LIGNE ─────
   {
     slug: 'open-the-door',
     title: 'Open The Door',
-    kind: 'client',
-    badge: 'Client · Open The Door · 2026',
+    status: 'en-ligne',
+    badge: "Serrurier d'urgence · Saint-Germain-en-Laye · 2026",
     projectType: 'Site vitrine une page + référencement local',
     year: 2026,
     sector: "Serrurerie d'urgence",
     place: 'Saint-Germain-en-Laye et Île-de-France',
     liveUrl: 'https://serrurieropendoor.fr',
     liveLabel: 'Voir le site en ligne',
-    featured: false,
+    featured: true,
     summary:
-      "Un site vitrine conçu pour une seule chose : faire décrocher le téléphone, à toute heure, depuis un écran de téléphone.",
+      "Un site conçu pour une seule chose : faire décrocher le téléphone, à toute heure, depuis un écran de téléphone.",
     cover: {
       src: '/images/projets/open-the-door/desktop-accueil.webp',
       alt: "Page d'accueil du site Open The Door, serrurier d'urgence",
@@ -151,7 +53,7 @@ export const PROJECTS = [
     did: [
       "Cadrage autour d'une action unique : l'appel téléphonique",
       "Bouton d'appel présent en permanence, dans l'en-tête et à chaque section",
-      "Mise en avant de la note et des avis Google authentiques du professionnel",
+      'Mise en avant de la note et des avis Google authentiques du professionnel',
       'Tableau des interventions avec tarif annoncé avant tout déplacement',
       'Rédaction des contenus : prestations, déroulé en trois étapes, zone couverte',
       "Référencement local : données structurées Locksmith, FAQ, avis, horaires et 18 communes déclarées en zone d'intervention",
@@ -171,41 +73,211 @@ export const PROJECTS = [
     beforeAfter: [],
     deliverables: [
       'Site vitrine une page, livré en ligne et fonctionnel',
-      "Rédaction complète des contenus",
+      'Rédaction complète des contenus',
       'Balisage de référencement local et données structurées',
       "Fiche d'interventions et zone géographique couverte",
     ],
     autonomy: [
-      todo("Préciser ce que le client peut modifier seul sur ce site : tarifs, zones, avis ? S'il n'y a pas d'interface d'administration, il vaut mieux l'écrire franchement que de le laisser deviner."),
+      todo("Préciser ce que le client peut modifier seul : tarifs, zones, avis ? S'il n'y a pas d'interface d'administration, mieux vaut l'écrire franchement que le laisser deviner."),
     ],
     results: [
       todo("Nombre d'appels reçus depuis la mise en ligne — à relever auprès du client."),
-      todo("Position dans les résultats Google sur « serrurier Saint-Germain-en-Laye » — à mesurer."),
+      todo("Position dans Google sur « serrurier Saint-Germain-en-Laye » — à mesurer."),
       todo("Évolution du nombre d'avis Google depuis la livraison (9 au moment de la rédaction)."),
     ],
   },
 
-  // ───────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────── 2. MAQUETTE ──────
   {
-    slug: 'maison-verane',
-    title: 'Maison Vérane',
-    kind: 'concept',
-    badge: 'Projet personnel · Concept · 2026',
-    projectType: 'Concept de site vitrine — direction artistique',
+    slug: 'beret-nettoyeur',
+    title: 'Le Béret Nettoyeur',
+    status: 'maquette',
+    badge: 'Nettoyage professionnel · Paris, 92, 95 et 78 · 2026',
+    projectType: 'Maquette complète — 14 pages',
     year: 2026,
-    sector: "Architecture d'intérieur (concept)",
+    sector: 'Nettoyage et entretien de locaux professionnels',
+    place: 'Paris, Hauts-de-Seine, Val-d’Oise et Yvelines',
+    liveUrl: null,
+    liveLabel: null,
+    featured: false,
+    summary:
+      "Le passage d'une activité de nettoyage chez les particuliers à une offre B2B : quatorze pages, une par prestation, pensées pour être trouvées une par une.",
+    cover: {
+      src: '/images/projets/beret-nettoyeur/desktop-accueil.webp',
+      alt: "Page d'accueil de la maquette Le Béret Nettoyeur",
+    },
+    context: [
+      "Le Béret Nettoyeur est une entreprise de nettoyage qui se repositionne vers les locaux professionnels : bureaux, commerces, locaux d'activité et parties communes.",
+      "Un donneur d'ordre professionnel ne cherche pas « une entreprise de nettoyage » : il cherche « lavage de vitres Versailles » ou « nettoyage fin de chantier ». Une page unique qui énumère tout n'est trouvable sur aucune de ces recherches.",
+      "La maquette répond à ça par l'architecture : une page par prestation et par zone, chacune autonome, chacune capable de se classer seule.",
+    ],
+    did: [
+      'Architecture de 14 pages : une par prestation, plus un blog et les pages légales',
+      "Pages dédiées : lavage de vitres, entretien de locaux, fin de chantier, débarras, textiles et moquettes, terrasses et façades, remise en peinture",
+      "Comparateur avant/après glissant, avec le lieu et la durée réelle de l'intervention",
+      'Mise en avant de la note Google et des avis du professionnel',
+      "Bandeau de réassurance : devis gratuit sous 24 h ouvrées, contrat sans engagement de durée, responsabilité civile professionnelle",
+      'Trois articles de blog adossés aux prestations, pour le référencement de longue traîne',
+      'Mentions légales et politique de confidentialité rédigées',
+      'Construction sous Webflow, avec code personnalisé par page',
+    ],
+    visuals: {
+      desktop: [
+        { src: '/images/projets/beret-nettoyeur/desktop-accueil.webp', alt: "Accueil de la maquette : titre, réassurance et comparateur avant/après", caption: "L'accueil annonce la zone couverte dès le titre — c'est la première question d'un gestionnaire de site." },
+      ],
+      mobile: [
+        { src: '/images/projets/beret-nettoyeur/mobile-accueil.webp', alt: 'Accueil de la maquette sur téléphone' },
+      ],
+    },
+    beforeAfter: [],
+    deliverables: [
+      'Maquette de 14 pages, navigables',
+      'Rédaction des contenus de chaque prestation',
+      'Trois articles de blog',
+      'Mentions légales et politique de confidentialité',
+    ],
+    autonomy: [
+      'Ajouter un article de blog depuis le gestionnaire de contenu',
+      'Mettre à jour les prestations et la zone couverte',
+    ],
+    results: [
+      "Maquette : les résultats se mesureront après une mise en ligne.",
+    ],
+  },
+
+  // ──────────────────────────────────────────────────── 3. MAQUETTE ──────
+  {
+    slug: 'ile-o-crepes',
+    title: "L'Île O' Crêpes",
+    status: 'maquette',
+    badge: 'Crêperie · Cinq adresses en Essonne · 2026',
+    projectType: 'Maquette de refonte — site multi-établissements',
+    year: 2026,
+    sector: 'Restauration',
+    place: 'Bures-sur-Yvette, Igny, Les Ulis, Orsay et Palaiseau',
+    liveUrl: null,
+    liveLabel: null,
+    featured: false,
+    summary:
+      "Cinq restaurants sous une seule marque : une refonte qui laisse choisir son adresse sans jamais quitter l'univers de l'enseigne.",
+    cover: {
+      src: '/images/projets/ile-o-crepes/desktop-accueil.webp',
+      alt: "Page d'accueil de la maquette L'Île O' Crêpes",
+    },
+    context: [
+      "L'Île O' Crêpes est une crêperie implantée sur cinq adresses en Essonne : Bures-sur-Yvette, Igny, Les Ulis, Orsay et Palaiseau.",
+      "Un site multi-établissements a un problème propre : le visiteur veut une adresse précise — horaires, terrasse, réservation — mais l'enseigne veut rester une seule marque et non cinq sites juxtaposés.",
+      "La maquette tient les deux : un univers commun, et une page par restaurant accessible dès la navigation.",
+    ],
+    did: [
+      'Refonte complète de la direction artistique autour de la carte et des produits',
+      'Architecture multi-établissements : une page par restaurant, cinq adresses',
+      "Mise en avant des deux actions qui comptent : réserver une table, commander en livraison",
+      "Système éditorial reprenant le nom d'île de chaque recette comme fil conducteur",
+      'Pages dédiées à la carte, au bar et aux réservations de groupes',
+      "Bandeau de services : sur place, à emporter, livraison, terrasses et jardins, animaux acceptés",
+      'Guide de styles livré avec la maquette, pour garder la cohérence après livraison',
+    ],
+    visuals: {
+      desktop: [
+        { src: '/images/projets/ile-o-crepes/desktop-accueil.webp', alt: "Accueil de la maquette L'Île O' Crêpes", caption: "Les deux actions utiles — réserver, commander — sont au même niveau, avant tout défilement." },
+      ],
+      mobile: [
+        { src: '/images/projets/ile-o-crepes/mobile-accueil.webp', alt: "Accueil de la maquette sur téléphone" },
+      ],
+    },
+    beforeAfter: [],
+    deliverables: [
+      'Maquette de la page principale et des gabarits de rubrique',
+      'Guide de styles : couleurs, typographie, composants',
+      'Architecture multi-établissements pour les cinq adresses',
+    ],
+    autonomy: [
+      'Mettre à jour la carte et les horaires de chaque adresse',
+      'Publier une actualité ou un évènement',
+    ],
+    results: [
+      "Maquette : les résultats se mesureront après une mise en ligne.",
+    ],
+  },
+
+  // ──────────────────────────────────────────────────── 4. MAQUETTE ──────
+  {
+    slug: 'aurae-paris',
+    title: 'Auraé Paris',
+    status: 'maquette',
+    badge: 'Cosmétique de luxe · Bilingue FR/EN · 2026',
+    projectType: 'Maquette de site vitrine haut de gamme — développement sur mesure',
+    year: 2026,
+    sector: 'Cosmétique et parfumerie de luxe',
     place: 'Paris',
     liveUrl: null,
     liveLabel: null,
     featured: false,
     summary:
-      "Un concept éditorial pour un studio d'architecture d'intérieur : typographie monumentale, or et crème, image unique.",
+      "Un site en mode sombre natif, bilingue, développé sur mesure — l'exercice le plus technique du portfolio.",
     cover: {
-      src: '/images/projets/maison-verane/cover.webp',
-      alt: "Page d'accueil du concept Maison Vérane",
+      src: '/images/projets/aurae-paris/desktop-accueil.webp',
+      alt: "Page d'accueil de la maquette Auraé Paris",
     },
     context: [
-      "Maison Vérane n'est pas un client : c'est un projet personnel, un concept mené pour explorer une direction artistique éditoriale appliquée à un studio d'architecture d'intérieur.",
+      "Auraé Paris est une marque de cosmétique haut de gamme dont la collection inaugurale se présente en trois formules.",
+      "Le registre du luxe ne pardonne pas l'à-peu-près : une animation qui saute, un texte qui éblouit, une image qui arrive en retard, et la promesse de qualité tombe. La difficulté était donc d'exécution, pas de conception.",
+      "Le site est construit en mode sombre natif, en français et en anglais, avec un parcours qui mène à une inscription en liste d'attente plutôt qu'à un paiement.",
+    ],
+    did: [
+      'Développement sur mesure : Next.js 16, React 19, TypeScript en mode strict',
+      'Mode sombre natif, avec deux règles tenues partout : jamais de noir pur sur les grandes surfaces, jamais de blanc pur en texte — le fond est un noir minéral, le texte un albâtre chaud',
+      'Système de design complet : tous les jetons de couleur, de rythme et de tempo dans une source unique, aucune valeur arbitraire dans le balisage',
+      "Hiérarchie des surfaces par la luminance et non par l'ombre portée, qui est invisible sur fond sombre",
+      'Défilement inertiel et dé-zoom lié au défilement',
+      "Parallaxe des bandes en CSS natif, exécutée hors du fil principal",
+      'Images servies en AVIF et WebP, avec aperçus flous générés',
+      'Bilingue français / anglais, et parcours jusqu’à l’inscription en liste d’attente',
+    ],
+    visuals: {
+      desktop: [
+        { src: '/images/projets/aurae-paris/desktop-accueil.webp', alt: "Page d'accueil de la maquette Auraé Paris, mode sombre", caption: "Le produit occupe l'écran ; l'interface se retire." },
+      ],
+      mobile: [
+        { src: '/images/projets/aurae-paris/mobile-accueil.webp', alt: 'Auraé Paris sur téléphone' },
+      ],
+    },
+    beforeAfter: [],
+    deliverables: [
+      'Maquette fonctionnelle, développée et navigable',
+      'Système de design documenté',
+      'Version française et version anglaise',
+    ],
+    autonomy: [
+      todo("Préciser ce qui serait modifiable sans développeur sur ce projet. En l'état la couche de contenu est locale et typée, prête à basculer vers un CMS ou une API de boutique — à confirmer avant de l'annoncer."),
+    ],
+    results: [
+      "Maquette : les résultats se mesureront après une mise en ligne.",
+    ],
+  },
+
+  // ──────────────────────────────────────────────────── 5. MAQUETTE ──────
+  {
+    slug: 'maison-verane',
+    title: 'Maison Vérane',
+    status: 'maquette',
+    badge: "Architecture d'intérieur · Projet personnel · 2026",
+    projectType: 'Maquette — recherche de direction artistique',
+    year: 2026,
+    sector: "Architecture d'intérieur",
+    place: 'Paris',
+    liveUrl: null,
+    liveLabel: null,
+    featured: false,
+    summary:
+      "Une recherche personnelle : tenir une page d'accueil avec un titre, une image et deux lignes de texte.",
+    cover: {
+      src: '/images/projets/maison-verane/cover.webp',
+      alt: "Page d'accueil de la maquette Maison Vérane",
+    },
+    context: [
+      "Maison Vérane est un projet personnel, mené pour explorer une direction artistique éditoriale appliquée à un studio d'architecture d'intérieur.",
       "L'exercice consistait à tenir une page d'accueil avec presque rien — un titre en très grand, une seule image, deux lignes de texte — et à faire porter toute la crédibilité par la composition typographique.",
       "Il sert ici à montrer un registre : celui des marques qui vendent un savoir-faire haut de gamme et pour lesquelles la retenue vaut mieux que l'abondance.",
     ],
@@ -217,26 +289,27 @@ export const PROJECTS = [
     ],
     visuals: {
       desktop: [
-        { src: '/images/projets/maison-verane/cover.webp', alt: "Page d'accueil du concept Maison Vérane", caption: "Le titre traverse l'écran ; l'image s'y superpose au lieu de l'illustrer." },
+        { src: '/images/projets/maison-verane/cover.webp', alt: "Page d'accueil de la maquette Maison Vérane", caption: "Le titre traverse l'écran ; l'image s'y superpose au lieu de l'illustrer." },
       ],
       mobile: [],
     },
     beforeAfter: [],
-    deliverables: [
-      'Direction artistique et maquette de la page principale',
-    ],
+    deliverables: ['Direction artistique et maquette de la page principale'],
     autonomy: [],
     results: [
-      todo("Projet personnel : il n'a pas de résultat commercial à mesurer. S'il doit rester au portfolio, c'est pour la direction artistique."),
+      "Projet personnel : pas de résultat commercial à mesurer. Il figure ici pour la direction artistique.",
     ],
   },
 ]
 
 export const bySlug = (slug) => PROJECTS.find((p) => p.slug === slug) ?? null
 
-/* Libellés d'état, affichés tels quels sur la carte et sur la page projet. */
-export const KIND_LABEL = {
-  client: 'Client',
-  proposition: 'Proposition',
-  concept: 'Projet personnel',
+/*
+  Libellés d'état. « En ligne » est une affirmation vérifiable par le
+  visiteur : elle n'est portée que par les projets qui ont réellement une
+  adresse publique. Tout le reste est une maquette, et le dit.
+*/
+export const STATUS_LABEL = {
+  'en-ligne': 'En ligne',
+  maquette: 'Maquette',
 }

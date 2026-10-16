@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { PROJECTS, KIND_LABEL } from '../content/projects.js'
+import { PROJECTS, STATUS_LABEL } from '../content/projects.js'
 import { layoutFor } from '../lib/projects.js'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
@@ -20,7 +20,7 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
   Story section.)
 */
 function ProjectCard({ project, index }) {
-  const { title, projectType, year, slug, cover, featured, kind } = project
+  const { title, projectType, year, slug, cover, featured, status } = project
   const { span, ratio } = layoutFor(index, featured)
   return (
     <article data-project className={`group col-span-1 ${span}`}>
@@ -38,14 +38,14 @@ function ProjectCard({ project, index }) {
           {/*
             Le statut est porté par la CARTE, pas seulement par la page
             projet : quelqu'un qui parcourt la grille sans cliquer ne doit
-            jamais pouvoir prendre une proposition pour une référence.
+            jamais pouvoir prendre une maquette pour un site en service.
           */}
           <span
             className={`absolute left-4 top-4 rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-widest backdrop-blur-sm ${
-              kind === 'client' ? 'bg-accent/95 text-ink' : 'bg-cream/85 text-ink/75'
+              status === 'en-ligne' ? 'bg-accent/95 text-ink' : 'bg-cream/85 text-ink/75'
             }`}
           >
-            {KIND_LABEL[kind]}
+            {STATUS_LABEL[status]}
           </span>
         </div>
         <div className="mt-4 flex items-baseline justify-between gap-4">
