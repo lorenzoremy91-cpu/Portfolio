@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { fetchProjects, layoutFor } from '../lib/projects.js'
+import { PROJECTS, KIND_LABEL } from '../content/projects.js'
+import { layoutFor } from '../lib/projects.js'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -19,43 +20,43 @@ gsap.registerPlugin(useGSAP, ScrollTrigger)
   Story section.)
 */
 function ProjectCard({ project, index }) {
-  const { title, category, year, slug, coverUrl, coverVideoUrl, coverAlt, featured } = project
+  const { title, projectType, year, slug, cover, featured, kind } = project
   const { span, ratio } = layoutFor(index, featured)
-  const hoverZoom =
-    'transition-transform duration-700 ease-out group-hover:scale-[1.04]'
   return (
     <article data-project className={`group col-span-1 ${span}`}>
       <Link to={`/projets/${slug}`} className="block">
-        <div className={`overflow-hidden bg-stone-soft ${ratio}`}>
-          {coverVideoUrl ? (
-            <video
-              src={coverVideoUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              className={`h-full w-full object-cover ${hoverZoom}`}
-            />
-          ) : (
-            <img
-              src={coverUrl}
-              alt={coverAlt || title}
-              loading="lazy"
-              decoding="async"
-              className={`h-full w-full object-cover ${hoverZoom}`}
-            />
-          )}
+        <div className={`relative overflow-hidden bg-stone-soft ${ratio}`}>
+          <img
+            src={cover.src}
+            alt={cover.alt}
+            /* La première carte est souvent visible d'emblée après le vol
+               de pétales : elle ne doit pas arriver en retard. */
+            loading={index === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+          />
+          {/*
+            Le statut est porté par la CARTE, pas seulement par la page
+            projet : quelqu'un qui parcourt la grille sans cliquer ne doit
+            jamais pouvoir prendre une proposition pour une référence.
+          */}
+          <span
+            className={`absolute left-4 top-4 rounded-full px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-widest backdrop-blur-sm ${
+              kind === 'client' ? 'bg-accent/95 text-ink' : 'bg-cream/85 text-ink/75'
+            }`}
+          >
+            {KIND_LABEL[kind]}
+          </span>
         </div>
         <div className="mt-4 flex items-baseline justify-between gap-4">
           <h3 className="font-display text-xl font-medium tracking-tight md:text-2xl">
-            <span className="mr-3 text-xs text-ink/40 align-middle">
+            <span className="mr-3 align-middle text-xs text-ink/40">
               {String(index + 1).padStart(2, '0')}
             </span>
             {title}
           </h3>
-          <p className="text-xs uppercase tracking-widest text-ink/60">
-            {category}
+          <p className="text-right text-xs uppercase tracking-widest text-ink/60">
+            {projectType}
             {year ? ` — ${year}` : ''}
           </p>
         </div>
@@ -66,17 +67,19 @@ function ProjectCard({ project, index }) {
 
 export default function Projects() {
   const scope = useRef(null)
-  const [projects, setProjects] = useState([])
+  /*
+    PLUS AUCUN CHARGEMENT ASYNCHRONE. Les projets venaient de Sanity, dans
+    le navigateur : la grille était vide au premier rendu, puis grandissait
+    APRÈS que ScrollTrigger avait mesuré la page, décalant toutes les
+    animations situées en dessous. C'est ce décalage que ce changement
+    supprime.
 
-  useEffect(() => {
-    let alive = true
-    fetchProjects().then((list) => {
-      if (alive) setProjects(list)
-    })
-    return () => {
-      alive = false
-    }
-  }, [])
+    À NE PAS CONFONDRE avec le référencement : le contenu est maintenant
+    dans le BUNDLE, pas dans le HTML. Le fichier servi fait toujours 2 ko et
+    ne contient toujours aucun texte. Seul un prérendu mettra ces projets
+    dans le HTML — c'est une étape distincte, encore à faire.
+  */
+  const projects = PROJECTS
 
   useGSAP(
     () => {
@@ -154,7 +157,7 @@ export default function Projects() {
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-20 md:grid-cols-12 md:gap-y-8">
           {projects.map((project, i) => (
-            <ProjectCard key={project._id} project={project} index={i} />
+            <ProjectCard key={project.slug} project={project} index={i} />
           ))}
         </div>
       </div>

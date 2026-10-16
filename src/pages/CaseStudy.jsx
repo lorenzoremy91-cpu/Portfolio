@@ -1,303 +1,276 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { PortableText } from '@portabletext/react'
 import Navbar from '../components/Navbar.jsx'
-import { fetchProject } from '../lib/projects.js'
-import { urlFor } from '../lib/sanity.js'
+import { bySlug, KIND_LABEL } from '../content/projects.js'
+import { CONTACT, mailto, telHref } from '../lib/identity.js'
+import NotFound from './NotFound.jsx'
 
 /*
-  Serialisers for the case-study rich text. The schema deliberately offers no
-  colours, sizes or alignments, so every decision about how a paragraph or a
-  quote LOOKS is made once, here, in the site's own type scale. A case study
-  written in a hurry still lands inside the art direction.
+  Le contenu vient désormais de src/content/projects.js, en SYNCHRONE.
+  Avant, cette page attendait Sanity dans le navigateur : le HTML partait
+  vide, Google ne voyait rien, et un visiteur sur une connexion lente
+  regardait un écran blanc. Ici tout est compilé dans le bundle.
 */
-const portableComponents = {
-  block: {
-    normal: ({ children }) => (
-      <p className="mt-6 text-base leading-relaxed text-ink/80 md:text-lg">{children}</p>
-    ),
-    h3: ({ children }) => (
-      <h3 className="font-display mt-14 text-2xl font-medium tracking-tight md:text-3xl">
-        {children}
-      </h3>
-    ),
-    blockquote: ({ children }) => (
-      <blockquote className="font-display my-12 border-l-2 border-accent pl-6 text-xl font-medium leading-snug text-ink md:text-2xl">
-        {children}
-      </blockquote>
-    ),
-  },
-  list: {
-    bullet: ({ children }) => (
-      <ul className="mt-6 space-y-2 text-base leading-relaxed text-ink/80 md:text-lg">
-        {children}
-      </ul>
-    ),
-  },
-  listItem: {
-    bullet: ({ children }) => (
-      <li className="flex gap-3">
-        <span aria-hidden="true" className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-        <span>{children}</span>
-      </li>
-    ),
-  },
-  marks: {
-    strong: ({ children }) => <strong className="font-medium text-ink">{children}</strong>,
-    link: ({ children, value }) => (
-      <a
-        href={value?.href}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:text-accent"
-      >
-        {children}
-      </a>
-    ),
-  },
-  types: {
-    image: ({ value }) => {
-      const src = urlFor(value, { width: 1600 })
-      if (!src) return null
-      return (
-        <figure className="my-12">
-          <img
-            src={src}
-            alt={value?.alt || ''}
-            loading="lazy"
-            decoding="async"
-            className="w-full rounded-lg"
-          />
-          {value?.caption && (
-            <figcaption className="mt-3 text-xs uppercase tracking-widest text-ink/50">
-              {value.caption}
-            </figcaption>
-          )}
-        </figure>
-      )
-    },
-  },
+
+/* Rend un { todo: … } en surbrillance, ou le texte simple sinon. */
+function Line({ value }) {
+  if (value && typeof value === 'object' && value.todo) {
+    return (
+      <span className="rounded-sm bg-accent/20 px-1.5 py-0.5">
+        <span className="text-[0.7em] font-semibold uppercase tracking-widest text-accent">
+          À compléter —{' '}
+        </span>
+        <span className="text-ink/80">{value.todo}</span>
+      </span>
+    )
+  }
+  return <span>{value}</span>
+}
+
+function Bullets({ items, className = '' }) {
+  if (!items?.length) return null
+  return (
+    <ul className={`space-y-3 ${className}`}>
+      {items.map((it, i) => (
+        <li key={i} className="flex gap-3 text-base leading-relaxed text-ink/80">
+          <span aria-hidden="true" className="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+          <Line value={it} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function Block({ eyebrow, title, children }) {
+  return (
+    <section className="mt-24 md:mt-36">
+      {eyebrow && <p className="text-xs uppercase tracking-widest text-ink/50">{eyebrow}</p>}
+      {title && (
+        <h2 className="font-serif mt-4 text-[clamp(1.75rem,6vw,2.75rem)] font-semibold uppercase leading-[1.05] tracking-[-0.01em]">
+          {title}
+        </h2>
+      )}
+      <div className="mt-8">{children}</div>
+    </section>
+  )
+}
+
+/* Cadre de téléphone : rappelle que la conception part du mobile. */
+function Phone({ src, alt }) {
+  return (
+    <figure className="w-[190px] shrink-0 md:w-[230px]">
+      <div className="overflow-hidden rounded-[1.75rem] border-[6px] border-ink/85 bg-ink/85 shadow-[0_24px_60px_-28px_rgba(16,16,16,0.55)]">
+        <img src={src} alt={alt} loading="lazy" decoding="async" className="block h-full w-full" />
+      </div>
+    </figure>
+  )
 }
 
 export default function CaseStudy() {
   const { slug } = useParams()
-  const [project, setProject] = useState(undefined) // undefined = chargement
+  const project = bySlug(slug)
 
   useEffect(() => {
-    let alive = true
-    window.scrollTo(0, 0)
-    setProject(undefined)
-    fetchProject(slug).then((doc) => {
-      if (alive) setProject(doc)
-    })
-    return () => {
-      alive = false
-    }
-  }, [slug])
-
-  // Titre d'onglet et description : chaque étude de cas est une page à part
-  // entière pour Google et pour un partage de lien.
-  useEffect(() => {
-    if (!project) return undefined
-    const previousTitle = document.title
+    if (!project) return
     document.title = `${project.title} — Studio Césure`
-    const meta = document.querySelector('meta[name="description"]')
-    const previousDesc = meta?.getAttribute('content')
-    if (meta && project.summary) meta.setAttribute('content', project.summary)
-    return () => {
-      document.title = previousTitle
-      if (meta && previousDesc != null) meta.setAttribute('content', previousDesc)
-    }
+    const d = document.querySelector('meta[name="description"]')
+    if (d) d.setAttribute('content', project.summary)
+    window.scrollTo(0, 0)
   }, [project])
 
-  if (project === undefined) {
-    return (
-      <>
-        <Navbar />
-        <main className="flex min-h-dvh items-center justify-center px-6">
-          <p className="text-xs uppercase tracking-widest text-ink/40">Chargement…</p>
-        </main>
-      </>
-    )
-  }
+  if (!project) return <NotFound />
 
-  if (project === null) {
-    return (
-      <>
-        <Navbar />
-        <main className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
-          <h1 className="font-serif text-[clamp(2rem,8vw,3rem)] font-semibold uppercase">
-            Projet introuvable
-          </h1>
-          <Link
-            to="/#work"
-            className="mt-8 text-xs uppercase tracking-widest text-ink/60 underline decoration-accent underline-offset-8 transition-colors hover:text-accent"
-          >
-            Voir tous les projets
-          </Link>
-        </main>
-      </>
-    )
-  }
+  const {
+    title, kind, badge, projectType, year, sector, place,
+    liveUrl, liveLabel, summary, cover, context, did,
+    visuals, beforeAfter, deliverables, autonomy, results,
+  } = project
 
-  const { title, client, category, year, summary, roles, results, body, gallery, liveUrl } = project
-  const cover = project.coverUrl
-  const coverVideo = project.coverVideoUrl
+  const meta = [
+    ['Type de projet', projectType],
+    ['Année', year],
+    ['Secteur', sector],
+    ['Lieu', place],
+  ].filter(([, v]) => v)
 
   return (
     <>
       <Navbar />
-      <main className="bg-cream pb-28 pt-nav md:pb-40">
-        <article>
-          {/* En-tête */}
-          <header className="mx-auto max-w-7xl px-6 pt-16 md:px-10 md:pt-24">
-            <Link
-              to="/#work"
-              className="group inline-flex items-center gap-2 text-xs uppercase tracking-widest text-ink/60 transition-colors hover:text-accent"
+      <main className="bg-cream px-6 pb-28 pt-28 md:px-10 md:pt-40">
+        <div className="mx-auto max-w-5xl">
+          <Link
+            to="/#work"
+            className="text-xs uppercase tracking-widest text-ink/60 transition-colors hover:text-accent"
+          >
+            ← Tous les projets
+          </Link>
+
+          {/*
+            Le statut d'abord, et toujours. Une proposition non retenue ne
+            doit jamais pouvoir se lire comme une référence acquise : c'est
+            une demande explicite du commanditaire de ce portfolio.
+          */}
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <span
+              className={`rounded-full px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-widest ${
+                kind === 'client'
+                  ? 'bg-accent text-ink'
+                  : 'border border-ink/20 text-ink/70'
+              }`}
             >
-              <span aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-x-1">
-                ←
-              </span>
-              Tous les projets
-            </Link>
+              {KIND_LABEL[kind]}
+            </span>
+            <span className="text-xs uppercase tracking-widest text-ink/50">{badge}</span>
+          </div>
 
-            <p className="mt-10 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/60">
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
-              {category}
-            </p>
+          <h1 className="font-serif mt-6 text-[clamp(2.25rem,9vw,4.5rem)] font-semibold uppercase leading-[1.02] tracking-[-0.015em]">
+            {title}
+          </h1>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink/80 md:text-xl">
+            {summary}
+          </p>
 
-            <h1 className="font-serif mt-6 max-w-4xl text-[clamp(2.5rem,11vw,5rem)] font-semibold uppercase leading-[1.02] tracking-[-0.01em] [transform:translateZ(0)]">
-              {title}
-            </h1>
-
-            {summary && (
-              <p className="font-display mt-8 max-w-2xl text-lg font-medium leading-snug text-ink md:text-xl">
-                {summary}
-              </p>
-            )}
-
-            <dl className="mt-14 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-ink/10 pt-8 md:grid-cols-4">
-              {client && (
-                <div>
-                  <dt className="text-xs uppercase tracking-widest text-ink/50">Client</dt>
-                  <dd className="font-display mt-2 text-base font-medium md:text-lg">{client}</dd>
-                </div>
-              )}
-              {year && (
-                <div>
-                  <dt className="text-xs uppercase tracking-widest text-ink/50">Année</dt>
-                  <dd className="font-display mt-2 text-base font-medium md:text-lg">{year}</dd>
-                </div>
-              )}
-              {roles?.length > 0 && (
-                <div className="col-span-2">
-                  <dt className="text-xs uppercase tracking-widest text-ink/50">Notre rôle</dt>
-                  <dd className="mt-2 flex flex-wrap gap-2">
-                    {roles.map((role) => (
-                      <span
-                        key={role}
-                        className="rounded-full border border-ink/15 px-3 py-1 text-xs text-ink/75"
-                      >
-                        {role}
-                      </span>
-                    ))}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </header>
-
-          {/* Visuel de couverture */}
-          {(coverVideo || cover) && (
-            <div className="mx-auto mt-16 max-w-7xl px-6 md:mt-24 md:px-10">
-              <div className="overflow-hidden rounded-lg bg-stone-soft">
-                {coverVideo ? (
-                  <video
-                    src={coverVideo}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <img
-                    src={cover}
-                    alt={project.coverAlt || title}
-                    className="h-full w-full object-cover"
-                  />
-                )}
+          <dl className="mt-12 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-ink/10 pt-8 md:grid-cols-4">
+            {meta.map(([k, v]) => (
+              <div key={k}>
+                <dt className="text-xs uppercase tracking-widest text-ink/50">{k}</dt>
+                <dd className="font-serif mt-2 text-base font-medium md:text-lg">{v}</dd>
               </div>
-            </div>
+            ))}
+          </dl>
+
+          {cover && (
+            <figure className="mt-14 overflow-hidden rounded-lg bg-stone-soft">
+              {/* Visuel d'ouverture : seule image chargée en priorité. */}
+              <img
+                src={cover.src}
+                alt={cover.alt}
+                fetchPriority="high"
+                decoding="async"
+                className="block h-full w-full"
+              />
+            </figure>
           )}
 
-          {/* Récit */}
-          {body?.length > 0 && (
-            <div className="mx-auto mt-20 max-w-3xl px-6 md:mt-28 md:px-10">
-              <PortableText value={body} components={portableComponents} />
-            </div>
-          )}
+          <Block eyebrow="Le contexte" title="L'enjeu">
+            {context.map((p, i) => (
+              <p key={i} className="mt-5 max-w-2xl text-base leading-relaxed text-ink/80 md:text-lg">
+                {p}
+              </p>
+            ))}
+          </Block>
 
-          {/* Résultats */}
-          {results?.length > 0 && (
-            <div className="mx-auto mt-20 max-w-7xl px-6 md:mt-28 md:px-10">
-              <ul className="grid gap-px overflow-hidden rounded-lg border border-ink/10 bg-ink/10 sm:grid-cols-2 md:grid-cols-4">
-                {results.map((r, i) => (
-                  <li key={i} className="bg-cream p-7">
-                    <p className="font-serif text-3xl font-semibold text-accent md:text-4xl">
-                      {r.value}
-                    </p>
-                    <p className="mt-2 text-xs uppercase tracking-widest text-ink/60">{r.label}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <Block eyebrow="La méthode" title="Ce que nous avons fait">
+            <Bullets items={did} className="max-w-2xl" />
+          </Block>
 
-          {/* Galerie */}
-          {gallery?.length > 0 && (
-            <div className="mx-auto mt-20 grid max-w-7xl gap-6 px-6 md:mt-28 md:grid-cols-2 md:gap-8 md:px-10">
-              {gallery.map((img, i) => {
-                const src = urlFor(img, { width: 1400 })
-                if (!src) return null
-                return (
-                  <figure key={img._key || i} className={i % 3 === 0 ? 'md:col-span-2' : ''}>
-                    <img
-                      src={src}
-                      alt={img.alt || ''}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full rounded-lg"
-                    />
-                    {img.caption && (
-                      <figcaption className="mt-3 text-xs uppercase tracking-widest text-ink/50">
-                        {img.caption}
-                      </figcaption>
+          {visuals.desktop.length > 0 && (
+            <Block eyebrow="Les écrans" title="Le projet en images">
+              <div className="space-y-14">
+                {visuals.desktop.map((v, i) => (
+                  <figure key={i}>
+                    <div className="overflow-hidden rounded-lg bg-stone-soft">
+                      <img src={v.src} alt={v.alt} loading="lazy" decoding="async" className="block h-full w-full" />
+                    </div>
+                    {v.caption && (
+                      <figcaption className="mt-3 text-sm text-ink/60">{v.caption}</figcaption>
                     )}
                   </figure>
-                )
-              })}
-            </div>
+                ))}
+              </div>
+            </Block>
           )}
 
-          {/* Le site en ligne */}
-          {liveUrl && (
-            <div className="mx-auto mt-24 max-w-7xl px-6 text-center md:mt-32 md:px-10">
-              <a
-                href={liveUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group inline-flex min-h-11 items-center gap-3 rounded-full bg-accent px-8 py-4 text-xs font-medium uppercase tracking-widest text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_28px_-14px_rgba(16,16,16,0.4)] transition-[transform,background-color,color,box-shadow] duration-300 ease-out hover:scale-[1.04] hover:bg-ink hover:text-cream active:scale-[0.96]"
-              >
-                Voir le site en ligne
-                <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
-                  →
-                </span>
-              </a>
-            </div>
+          {visuals.mobile.length > 0 && (
+            <Block eyebrow="Sur téléphone" title="L'écran qui compte">
+              <div className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-4 md:mx-0 md:px-0">
+                {visuals.mobile.map((v, i) => (
+                  <Phone key={i} src={v.src} alt={v.alt} />
+                ))}
+              </div>
+            </Block>
           )}
-        </article>
+
+          {beforeAfter.length > 0 && (
+            <Block eyebrow="Comparaison" title="Avant / Après">
+              <div className="space-y-16">
+                {beforeAfter.map((ba, i) => (
+                  <div key={i}>
+                    <h3 className="font-serif text-lg font-medium md:text-xl">{ba.label}</h3>
+                    <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+                      {[['Avant', ba.before], ['Après', ba.after]].map(([lab, img]) => (
+                        <figure key={lab}>
+                          <figcaption className="mb-2 text-xs uppercase tracking-widest text-ink/50">
+                            {lab}
+                          </figcaption>
+                          <div className="overflow-hidden rounded-lg bg-stone-soft">
+                            <img src={img.src} alt={img.alt} loading="lazy" decoding="async" className="block h-full w-full" />
+                          </div>
+                        </figure>
+                      ))}
+                    </div>
+                    {ba.note && <p className="mt-4 max-w-2xl text-sm text-ink/60">{ba.note}</p>}
+                  </div>
+                ))}
+              </div>
+            </Block>
+          )}
+
+          {(deliverables.length > 0 || autonomy.length > 0) && (
+            <Block eyebrow="Ce qui est livré" title="Livrables et autonomie">
+              <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
+                {deliverables.length > 0 && (
+                  <div>
+                    <h3 className="text-xs uppercase tracking-widest text-ink/50">Livrables</h3>
+                    <Bullets items={deliverables} className="mt-5" />
+                  </div>
+                )}
+                {autonomy.length > 0 && (
+                  <div>
+                    <h3 className="text-xs uppercase tracking-widest text-ink/50">
+                      Ce que le client fait seul ensuite
+                    </h3>
+                    <Bullets items={autonomy} className="mt-5" />
+                  </div>
+                )}
+              </div>
+            </Block>
+          )}
+
+          {results.length > 0 && (
+            <Block eyebrow="Résultats" title="Ce que ça a produit">
+              <Bullets items={results} className="max-w-2xl" />
+            </Block>
+          )}
+
+          <section className="mt-28 border-t border-ink/10 pt-12">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+              {liveUrl ? (
+                <a
+                  href={liveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex min-h-11 items-center gap-3 self-start rounded-full bg-accent px-7 py-3 text-xs font-medium uppercase tracking-widest text-ink transition-[transform,background-color,color] duration-300 ease-out hover:scale-[1.03] hover:bg-ink hover:text-cream active:scale-[0.97]"
+                >
+                  {liveLabel}
+                  <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                </a>
+              ) : (
+                <span className="text-sm text-ink/60">Projet personnel — pas de site en ligne.</span>
+              )}
+              <p className="text-sm text-ink/70">
+                Un projet comparable ?{' '}
+                <a href={mailto} className="underline decoration-1 underline-offset-4 transition-colors hover:text-accent">
+                  {CONTACT.email}
+                </a>{' '}
+                ·{' '}
+                <a href={telHref} className="underline decoration-1 underline-offset-4 transition-colors hover:text-accent">
+                  {CONTACT.phoneDisplay}
+                </a>
+              </p>
+            </div>
+          </section>
+        </div>
       </main>
     </>
   )
