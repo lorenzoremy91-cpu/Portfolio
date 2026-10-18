@@ -244,8 +244,23 @@ export const PROJECTS = [
     year: 2026,
     sector: 'Cosmétique et parfumerie de luxe',
     place: 'Paris',
-    liveUrl: null,
-    liveLabel: null,
+    /*
+      Déployée sur son propre projet Vercel — c'était la seule voie
+      possible : l'application utilise des réécritures et deux routes API
+      (/api/waitlist, /api/contact), qu'un export statique aurait cassées,
+      contrairement aux deux autres maquettes servies sous /demo/.
+
+      Pas de noindex ici, à la différence du Béret Nettoyeur et de l'Île O'
+      Crêpes : la marque Auraé est FICTIVE (son propre README le dit), donc
+      aucune entreprise réelle ne peut être concurrencée ni confondue.
+
+      Le lien compense le peu de visuels : la page monte ses panneaux à la
+      demande et son hero se dé-zoome au défilement, si bien qu'aucune
+      capture automatique n'en voit autre chose que le premier écran. Ici,
+      le visiteur voit le site entier, en vrai.
+    */
+    liveUrl: 'https://auree-paris.vercel.app/',
+    liveLabel: 'Parcourir la maquette en ligne',
     featured: false,
     summary:
       "Un site en mode sombre natif, bilingue, développé sur mesure — l'exercice le plus technique du portfolio.",
@@ -273,7 +288,8 @@ export const PROJECTS = [
         Un seul visuel d'ordinateur, et ce n'est pas un oubli : la page monte
         ses panneaux à la demande et son hero se dé-zoome au défilement. Une
         capture automatique n'en voit donc que le premier écran, figé zoomé.
-        Les sections basses demandent une capture manuelle.
+        Ce n'est plus gênant depuis que la maquette est consultable en ligne
+        (voir liveUrl) : le visiteur n'a plus à se contenter d'images.
       */
       desktop: [
         { src: '/images/projets/aurae-paris/desktop-accueil.webp', w: 1440, h: 900, alt: "Page d'accueil de la maquette Auraé Paris, mode sombre", caption: "Le produit occupe l'écran ; l'interface se retire." },
