@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "headers": [
     {
-      "//": "LES MAQUETTES DE DÉMONSTRATION NE DOIVENT JAMAIS ÊTRE INDEXÉES. Le Béret Nettoyeur et L'Île O' Crêpes sont des entreprises réelles : une copie publique indexable de leur site entrerait en concurrence avec le leur dans Google, et un client pourrait tomber dessus en croyant avoir trouvé l'original. X-Robots-Tag règle les deux problèmes à la racine, sans toucher au code des maquettes.",
       "source": "/demo/(.*)",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
