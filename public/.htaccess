@@ -106,3 +106,15 @@ Options -MultiViews
 # ---- Page d'erreur --------------------------------------------------
 # Filet de sécurité si mod_rewrite venait à être désactivé.
 ErrorDocument 404 /index.html
+
+# ── Maquettes de démonstration : jamais indexées ───────────────────────────
+# Le Béret Nettoyeur et L'Île O' Crêpes sont des entreprises réelles. Une
+# copie publique indexable de leur site concurrencerait le leur dans Google
+# et pourrait tromper leurs propres clients. Équivalent Apache de la règle
+# posée dans vercel.json.
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "^/demo/" CESURE_DEMO
+</IfModule>
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow, noarchive" env=CESURE_DEMO
+</IfModule>

@@ -92,13 +92,24 @@ export const PROJECTS = [
     slug: 'beret-nettoyeur',
     title: 'Le Béret Nettoyeur',
     status: 'maquette',
+    /*
+      La maquette est hébergée sur ce site, sous /demo/, et servie avec un
+      en-tête X-Robots-Tag noindex (voir vercel.json et public/.htaccess).
+
+      Ce n'est pas une précaution de principe : Le Béret Nettoyeur est une
+      entreprise réelle, avec son propre nom de domaine. Une copie publique
+      indexable de son site entrerait en concurrence avec le sien dans
+      Google, et l'un de ses clients pourrait tomber dessus en croyant avoir
+      trouvé l'original. Le lien reste parfaitement consultable par un
+      visiteur du portfolio ; il est simplement invisible pour les moteurs.
+    */
     badge: 'Nettoyage professionnel · Paris, 92, 95 et 78 · 2026',
     projectType: 'Maquette complète — 14 pages',
     year: 2026,
     sector: 'Nettoyage et entretien de locaux professionnels',
     place: 'Paris, Hauts-de-Seine, Val-d’Oise et Yvelines',
-    liveUrl: null,
-    liveLabel: null,
+    liveUrl: '/demo/beret-nettoyeur/index.html',
+    liveLabel: 'Parcourir la maquette — 14 pages',
     featured: false,
     summary:
       "Le passage d'une activité de nettoyage chez les particuliers à une offre B2B : quatorze pages, une par prestation, pensées pour être trouvées une par une.",
@@ -165,8 +176,16 @@ export const PROJECTS = [
       sur la section « Nos escales » de la maquette elle-même.
     */
     place: 'Gif-sur-Yvette, Voisins-le-Bretonneux, Boulogne-Billancourt, Marcoussis et Igny',
-    liveUrl: null,
-    liveLabel: null,
+    /* Même dispositif que Le Béret Nettoyeur : hébergée sous /demo/, servie
+       en noindex. L'Île O' Crêpes est elle aussi une enseigne réelle. */
+    /*
+       Seule la page d'accueil a été construite. Les liens de navigation
+       vers les pages qui n'existent pas sont rendus inertes (voir le script
+       de préparation des démos) : un clic ne mène jamais à une erreur. Le
+       libellé l'annonce, pour que le visiteur ne cherche pas en vain.
+    */
+    liveUrl: '/demo/ile-o-crepes/index.html',
+    liveLabel: "Voir la maquette — page d'accueil",
     featured: false,
     summary:
       "Cinq restaurants sous une seule marque : une refonte qui laisse choisir son adresse sans jamais quitter l'univers de l'enseigne.",
